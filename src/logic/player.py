@@ -8,13 +8,19 @@ class Player:
         self.hand = {i : None for i in range(5)}
         self.open = [0, 1, 2, 3, 4]
 
-    def play_turn(self, move, card_to_pick_up):
+    def play_turn(self, move, card_to_pick_up, yaniv=False):
+        if yaniv:
+            try:
+                return "Yaniv", self.yaniv()
+            except InvalidMoveException:
+                return "", False
+            return 
         try:
             self.play_cards(move)
         except InvalidMoveException:
-            return False
+            return "", False
         self.add_to_hand(card_to_pick_up)
-        return True
+        return "Continue", True
 
     def add_to_hand(self, card):
         assert len(self.open) > 0
