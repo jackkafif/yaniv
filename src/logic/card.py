@@ -26,3 +26,6 @@ class Card:
 
     def __str__(self):
         return f"{self.value} of {self.suit}s"
+
+    def __repr__(self):
+        return self.__str__()

@@ -1,4 +1,5 @@
 from card import Card
+from deck import Deck
 
 class InvalidMoveException(Exception):
     pass
@@ -8,7 +9,7 @@ class Player:
         self.hand = {i : None for i in range(5)}
         self.open = [0, 1, 2, 3, 4]
 
-    def play_turn(self, move, card_to_pick_up, yaniv=False):
+    def play_turn(self, move, card_to_pick_up):
         if yaniv:
             try:
                 return "Yaniv", self.yaniv()
