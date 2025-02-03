@@ -16,6 +16,9 @@ class Deck:
         self.discard = []
         random.shuffle(self.cards)
 
+    def deal_five(self):
+        return [self.deal() for i in range(5)]
+
     def deal(self):
         if not self.isEmpty():
             return self.cards.pop()

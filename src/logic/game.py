@@ -3,7 +3,7 @@ from player import Player
 from move import Move
 
 class Game:
-    def __init__(self, n_players):
+    def __init__(self, n_players = 2):
         self.deck = Deck()
         assert n_players >= 2
         self.players = [Player() for player in range(n_players)]
