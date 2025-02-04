@@ -22,3 +22,10 @@ class Deck:
         for suit, rank in cards:
             self.discard.append((suit, rank))
             self.top_card[suit * self.RANKS + rank] += 1
+
+    def pick_top(self, card):
+        if self.top_card[card] != 0:
+            self.top_card = [0] * 52
+            return True
+        else:
+            return False

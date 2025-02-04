@@ -8,9 +8,6 @@ class Model:
         self.epsilon = epsilon
 
     def initialize_state(self):
-        # our_hand = np.zeros((4, 13))
-        # top_card = np.zeros((4, 13))
-        # pick_deck = np.one((1))
         state = np.zeros(106)
         state[105] += 1
 
@@ -20,14 +17,33 @@ class Model:
         pick_deck = state[105]
         return our_hand, top_card, pick_deck
 
-    def play_step(self, state, turn):
+    def choose_action(self, state):
+        valid_actions = self.valid_actions(state)
+        if np.random.rand() < self.epsilon:
+            action = np.random.choice(valid_actions)
+        else:
+            action = max(self.Q_table.get(state, {}), default=valid_actions[0])
+        return action
+    
+    def valid_actions(self, state):
+        actions = ["Play and Draw From Deck", "Play and Draw From Pile", "Yaniv"]
+        also = ["What to play, if yaniv nothing"]
+
+
+    def play_step(self, state, action):
+        """
+        Advance state based on action
+        """
         pass
 
-    def update_q_table(self, state, action, reward, next_state):
+    def update_q_table(self, state, action, reward):
+        """
+        Update Q Learning Table[state] based on reward
+        """
         pass
 
     def compute_reward(self, state):
-        pass
-
-    def choose_action(self, state):
+        """
+        Computes reward of current game state
+        """
         pass
