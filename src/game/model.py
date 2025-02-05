@@ -1,16 +1,6 @@
 import numpy as np
 from state import GameState
-
-import itertools
-
-def generate_combinations(n=5, max_length=6):
-    all_combinations = []
-
-    for length in range(1, max_length):
-        for combination in itertools.combinations(range(n), length):
-            all_combinations.append(combination)
-
-    return all_combinations
+import helpers
 
 class Model:
     def __init__(self):
@@ -26,7 +16,7 @@ class Model:
         }
 
         self.move_value = {
-            i : 0.0 for i in range(1, 41)
+            i : 0.0 for i in range(1, 48)
         }
 
         self.learning_rate = 0.01
@@ -37,16 +27,23 @@ class Model:
         last = np.array([i for i in last_five])
         completes_s = np.array([c for c in completes_set])
         completes_str = np.array([c for c in completes_straight])
-        return np.array([our_hand_value, other_player_num_cards]).extend(completes_s).extend(completes_str)
+        return np.array([our_hand_value, turn, other_player_num_cards]).extend(completes_s).extend(completes_str).extend(last)
 
-    def predict_q(self, state, action):
+    def predict_q_first(self, state, action):
         feature = self.feature(state)
         return (self.weights[action] * feature).sum()
     
     def can_yaniv(self, state : GameState, hand):
         return state.can_yaniv(hand)
+    
+    def valid_move_values(self, state : GameState, hand):
+        valid_moves = []
+        nonzeros = np.nonzero(hand)
+        for i in range(nonzeros):
+            valid_moves += state.move_value(hand, i)
+        return valid_moves
 
-    def update_weights(self, state, action, reward, next_state):
+    def update_first_weights(self, state, action, reward, next_state):
         # TODO (this is incorrect)
         yaniv = self.can_yaniv(state[0])
 
@@ -57,11 +54,33 @@ class Model:
         
         self.weights[action] += self.learning_rate * (reward + self.discount_factor * best_future_q - current_q) * self.feature(state)
 
-    def choose_action(self, state : GameState):
+    def choose_first_action(self, state : GameState):
         # TODO (this is incorrect)
-        yaniv = self.can_yaniv(state.player_1_hand)
+        first_moves = ["Continue"] + ["Yaniv"] if self.can_yaniv(state.player_1_hand) else []
 
-        if np.random.rand() < 0.4:  # 10% chance to explore
-            return np.random.choice(['hit', 'stand'])
+        if len(first_moves) == 1:
+            return "Continue"
+        elif np.random.rand() < 0.4:  # 40% chance to explore
+            if np.random.choice(first_moves) == "Yaniv":
+                return "Yaniv"
+        else:
+            return "Yaniv" if self.predict_first_q(state, "Yaniv") > self.predict_first_q(state, "Continue") else "Continue"
+        
+    def update_second_weights(self, state, action, reward, next_state):
+        # TODO (this is incorrect)
+
+        next_action = 'hit' if self.predict_q(next_state, 'hit') > self.predict_q(next_state, 'stand') else 'stand'
+        best_future_q = self.predict_q(next_state, next_action)
+
+        current_q = self.predict_q(state, action)
+        
+        self.weights[action] += self.learning_rate * (reward + self.discount_factor * best_future_q - current_q) * self.feature(state)
+        
+    def choose_second_action(self, state : GameState):
+        
+        valid_moves = self.valid_move_values(state, state.player_1_hand).sort(key=lambda x : self.predict_q(state, x))
+
+        if np.random.rand() < 0.4:
+            return np.random.choice(valid_moves)[1]
 
         return 'hit' if self.predict_q(state, 'hit') > self.predict_q(state, 'stand') else 'stand'
