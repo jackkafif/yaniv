@@ -96,7 +96,7 @@ class GameState:
         self.top_cards = []
         return card
     
-    def play(self, cards : list[int], draw_idx : int) -> int:
+    def play(self, hand : np.ndarray, cards : list[int], draw_idx : int) -> int:
         self.discard += self.top_cards
         if draw_idx >= 0:
             card_drawn = self.draw(draw_idx)
