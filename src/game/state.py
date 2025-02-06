@@ -12,7 +12,7 @@ class GameState:
         self.cards_played = []
         self.over = False
 
-    def move_value(self, hand : np.ndarray, card : int) -> tuple[int, int]:
+    def move_value(self, hand : np.ndarray[int], card : int) -> list[tuple[int, list[int]]]:
         suit = card // 13
         rank = card % 13
 
@@ -33,20 +33,20 @@ class GameState:
             if length >= 2:
                 works = True
                 for i in set_comb:
-                    works = True and hand_copy[i, rank] == 1
+                    works = works and hand_copy[i, rank] == 1
                 if works:
                     value_tups.append((min(rank, 10) * length, set_comb))
         return value_tups
 
-    def card_indices(self, hand : np.ndarray) -> list[int]:
+    def card_indices(self, hand : np.ndarray[int]) -> list[int]:
         return np.nonzero(hand)
 
-    def completes_set(self, hand : np.ndarray, card : int) -> bool:
+    def completes_set(self, hand : np.ndarra[int], card : int) -> bool:
         hand_copy = self.hand.copy().reshape((4, 13)).clip(0, 1)
         hand_copy[card] += 1
         return np.nonzero(hand_copy) > 1
     
-    def completes_straight(self, hand : np.ndarray, card : int) -> bool:
+    def completes_straight(self, hand : np.ndarray[int], card : int) -> bool:
         suit = card // 13
         rank = card % 13
         hand_reshaped = hand.copy().reshape((4, 13))
@@ -56,7 +56,7 @@ class GameState:
         after = (hand_suit[(rank + 1) % 13] == 1 and hand_suit[(rank + 2) % 13] == 1)
         return between or before or after
 
-    def get_features(self) -> tuple:
+    def get_features(self) -> tuple[int, list[int], int, int, list[int], bool, bool]:
         our_hand_value = self.get_hand_value(self.player_1_hand)
         our_cards = len(self.player_1_hand)
         other_player_num_cards = len(self.player_2_hand)
@@ -67,7 +67,7 @@ class GameState:
         completes_straight = [self.completes_straight(our_cards, card) for card in top_cards]
         return our_hand_value, our_cards, other_player_num_cards, turn, last_five, completes_set, completes_straight
 
-    def get_hand_value(self, hand : np.ndarray) -> int:
+    def get_hand_value(self, hand : np.ndarray[int]) -> int:
         sum = (hand.reshape((4, 13)) * np.arange(1, 13)).clip(0, 10).sum()
         return sum
 
@@ -81,7 +81,7 @@ class GameState:
     def can_yaniv(self, hand : np.ndarray) -> bool:
         return self.get_hand_value(hand) <= 7
     
-    def yaniv(self, hand : np.ndarray, other_hands : list[np.ndarray]) -> bool:
+    def yaniv(self, hand : np.ndarray[int], other_hands : list[np.ndarray]) -> bool:
         our_value = self.get_hand_value(hand)
         for others in other_hands:
             if our_value <= self.get_hand_value(others):
@@ -96,7 +96,7 @@ class GameState:
         self.top_cards = []
         return card
     
-    def play(self, hand : np.ndarray, cards : list[int], draw_idx : int) -> int:
+    def play(self, hand : np.ndarray[int], cards : list[int], draw_idx : int) -> int:
         self.discard += self.top_cards
         if draw_idx >= 0:
             card_drawn = self.draw(draw_idx)

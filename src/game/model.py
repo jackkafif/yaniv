@@ -30,24 +30,26 @@ class Model:
         completes_str = np.array([c for c in completes_straight])
         return np.array([our_hand_value, turn, other_player_num_cards]).extend(completes_s).extend(completes_str).extend(last)
 
-    def predict_q_first(self, state, action):
+    def predict_q_first(self, state : GameState, action : str):
         feature = self.feature(state)
         return (self.weights[action] * feature).sum()
     
-    def predict_q_second(self, state, action, feature):
-        return (self.weights[action] * feature).sum()
+    def predict_q_second(self, move : tuple[int, list[str]], feature):
+        value, action = move
+        feat = feature.extend(value)
+        return (self.weights[action] * feat).sum()
 
     def can_yaniv(self, state : GameState, hand):
         return state.can_yaniv(hand)
     
-    def valid_move_values(self, state : GameState, hand):
+    def valid_move_values(self, state : GameState, hand : np.ndarray[int]) -> list[tuple[int, list[int]]]:
         valid_moves = []
         nonzeros = np.nonzero(hand)
         for i in range(nonzeros):
             valid_moves += state.move_value(hand, i)
         return valid_moves
 
-    def update_first_weights(self, state, action, reward, next_state):
+    def update_first_weights(self, state : GameState, action : str, reward : int, next_state : GameState):
         next_action = 'Continue' if self.predict_q(next_state, 'Continue') > self.predict_q(next_state, 'Yaniv') else 'Yaniv'
         best_future_q = 0 if next_action == "Yaniv" else self.predict_q_first(next_state, next_action)
 
@@ -66,16 +68,16 @@ class Model:
         else:
             return "Yaniv" if self.predict_first_q(state, "Yaniv") > self.predict_first_q(state, "Continue") else "Continue"
         
-    def update_second_weights(self, state, action, reward, next_state):
+    def update_second_weights(self, state : GameState, action : list[int], reward : int, next_state : GameState) -> None:
 
         state_features = self.features(state)
 
         next_valid_moves = self.valid_move_values(state, state.player_1_hand)
         next_state_features = self.features(next_state)
-        next_valid_moves.sort(key=lambda x : self.predict_q_second(next_state, x, next_state_features))
+        next_valid_moves.sort(key=lambda x : self.predict_q_second(x[1], next_state_features))
 
         next_action = next_valid_moves[0]
-        best_future_q = self.predict_q_second(next_state, next_action, next_state_features)
+        best_future_q = self.predict_q_second(next_action, next_state_features)
 
         current_q = self.predict_q_second(state, action, state_features)
         
@@ -90,7 +92,7 @@ class Model:
         
         state_features = self.features(state)
         valid_moves.sort(key=lambda x : self.predict_q_second(state, x, state_features))
-        return valid_moves[0]
+        return valid_moves[0][1]
     
     def update_third_weights(self, state : GameState, action, reward, next_state):
         # TODO
