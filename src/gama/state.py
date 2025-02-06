@@ -20,10 +20,8 @@ class GameState:
     def valid_move_values(self, hand : np.ndarray[int]) -> list[tuple[int, list[int]]]:
         valid_moves = []
         nonzeros = np.nonzero(hand)
-        print(nonzeros)
         for i in nonzeros[0]:
             x = self.move_value(hand, i)
-            print(x)
             valid_moves += self.move_value(hand, i)
         return valid_moves
     
@@ -45,11 +43,9 @@ class GameState:
         value_tups = []
         after = (hand_suit[(rank + 1) % 13] == 1 and hand_suit[(rank + 2) % 13] == 1)
         if after:
-            # print(rank, rank + 1, rank + 2)
             after_value, indices = min((rank + 1) % 13, 10) + min((rank + 2) % 13, 10) + min((rank + 3) % 13, 10), (rank, rank+1, rank+2)
             value_tups.append((after_value, indices))
 
-        # print(set_combinations)
         for set_comb in set_combinations:
             length = len(set_comb)
             if length >= 2 and (True and (hand_copy[i, rank] == 1 for i in set_comb)):
@@ -91,7 +87,7 @@ class GameState:
         return sum
 
     def deal(self) -> int:
-        if self.curr_idx == 52:
+        if self.curr_idx == 51:
             self.deck = np.arange(52)
             np.random.shuffle(self.deck)
             self.curr_idx = -1
@@ -127,6 +123,12 @@ class GameState:
         if len(cards) <= 1:
             self.top_cards = cards
         self.top_cards = [cards[0], cards[-1]]
+        nzs = np.nonzero(hand)[0]
+        for card in cards:
+            print(nzs[card])
+            hand[nzs[card]] -= 1
+        hand[card_drawn] += 1
+        print("Turn over")
         return card_drawn
     
     def playOpponentTurn(self) -> tuple[bool, bool]:
@@ -138,16 +140,21 @@ class GameState:
         else:
             moves = self.valid_move_values(self.player_2_hand)
             moves.sort(key = lambda move : move[0])
-            move = moves[0]
+            move_i = moves[0]
             curr = "Deck"
+            drew = False
             for move in self.valid_third_moves():
                 if move == "Deck":
                     pass
                 elif move == "Card 0":
                     if self.completes_set(self.player_2_hand, self.top_cards[0]):
-                        self.player_2_hand += self.draw(0)
+                        idx = 0
+                        drew = True
                 else:
                     if self.completes_set(self.player_2_hand, self.top_cards[1]):
-                        self.player_2_hand += self.draw(1)
-            self.player_2_hand += self.draw(-1)
+                        idx = 1
+                        drew = True
+            if not drew:
+                idx = -1
+            self.play(self.player_2_hand, move_i[1], idx)
         return done, won
