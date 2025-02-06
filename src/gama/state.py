@@ -115,6 +115,7 @@ class GameState:
         return card
     
     def play(self, hand : np.ndarray[int], cards : list[int], draw_idx : int) -> int:
+        print(f"Hand s as {hand}")
         self.discard += self.top_cards
         if draw_idx >= 0:
             card_drawn = self.draw(draw_idx)
@@ -128,7 +129,7 @@ class GameState:
             print(nzs[card])
             hand[nzs[card]] -= 1
         hand[card_drawn] += 1
-        print("Turn over")
+        print(f"Hand e as {hand}")
         return card_drawn
     
     def playOpponentTurn(self) -> tuple[bool, bool]:
