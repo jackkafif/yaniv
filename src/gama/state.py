@@ -9,11 +9,11 @@ class GameState:
         self.player_2_hand = np.zeros(52)
         self.curr_idx = -1
         for i in range(5):
-            self.player_1_hand += self.deal()
-            self.player_2_hand += self.deal()
+            self.player_1_hand[self.deal()] += 1
+            self.player_2_hand[self.deal()] += 1
         self.turn = 0
         self.discard = []
-        self.top_cards = []
+        self.top_cards = [self.deal()]
         self.cards_played = []
         self.over = False
 
@@ -43,37 +43,27 @@ class GameState:
 
         hand_suit = hand_copy[suit]
         value_tups = []
-        print(suit, rank)
-        print()
-        print(hand_suit[(rank + 1) % 13])
         after = (hand_suit[(rank + 1) % 13] == 1 and hand_suit[(rank + 2) % 13] == 1)
         if after:
             # print(rank, rank + 1, rank + 2)
             after_value, indices = min((rank + 1) % 13, 10) + min((rank + 2) % 13, 10) + min((rank + 3) % 13, 10), (rank, rank+1, rank+2)
             value_tups.append((after_value, indices))
 
-        print(set_combinations)
+        # print(set_combinations)
         for set_comb in set_combinations:
             length = len(set_comb)
-            if length >= 1:
-                print(set_comb)
-                works = True
-                for i in set_comb:
-                    print(i)
-                    works = works and hand_copy[i, rank] == 1
-                if works:
-                    print("Works " + str(set_comb))
-                    value_tups.append((min(rank, 10) * length, set_comb))
-        print(f"{value_tups} hi")
+            if length >= 2 and (True and (hand_copy[i, rank] == 1 for i in set_comb)):
+                value_tups.append((min((rank + 1), 10) * length, set_comb))
         return value_tups
 
     def card_indices(self, hand : np.ndarray[int]) -> list[int]:
         return np.nonzero(hand)
 
     def completes_set(self, hand : np.ndarray[int], card : int) -> bool:
-        hand_copy = self.hand.copy().reshape((4, 13)).clip(0, 1)
+        hand_copy = hand.copy()
         hand_copy[card] += 1
-        return np.nonzero(hand_copy) > 1
+        hand_copy.reshape((4, 13)).clip(0, 1)
+        return len(np.nonzero(hand_copy.reshape((52)))) > 1
     
     def completes_straight(self, hand : np.ndarray[int], card : int) -> bool:
         suit = card // 13
@@ -92,8 +82,8 @@ class GameState:
         turn = self.turn
         last_five = self.cards_played[-5:]
         top_cards = self.top_cards
-        completes_set = [self.completes_set(our_cards, card) for card in top_cards]
-        completes_straight = [self.completes_straight(our_cards, card) for card in top_cards]
+        completes_set = [self.completes_set(self.player_1_hand, card) for card in top_cards]
+        completes_straight = [self.completes_straight(self.player_1_hand, card) for card in top_cards]
         return our_hand_value, our_cards, other_player_num_cards, turn, last_five, completes_set, completes_straight
 
     def get_hand_value(self, hand : np.ndarray[int]) -> int:

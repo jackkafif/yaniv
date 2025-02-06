@@ -22,12 +22,10 @@ class SuperModel:
         self.weights[action] += (self.learning_rate * (reward + self.discount_factor * best_future_q - current_q) * features).sum()
 
     def choose_action(self, possible_actions, features):
-        print(possible_actions)
         if len(possible_actions) == 1:
             return possible_actions[0]
         elif np.random.rand() < self.explore_prob:
-            print(possible_actions)
-            return  np.random.choice(possible_actions)
+            return np.random.choice(possible_actions)
         else:
             possible_actions.sort(key = lambda action : self.predict_q(action, features))
             return possible_actions[0]

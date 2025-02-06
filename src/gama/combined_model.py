@@ -38,14 +38,18 @@ class CombinedModel:
         print(state.player_1_hand)
         second_moves = state.valid_move_values(state.player_1_hand)
         print(f"Second moves {second_moves}")
-        move2 = self.m2.choose_action(second_moves, features)
+        print(state.player_1_hand)
+        move_value = self.m2.choose_action([i[0] for i in second_moves], features)
+        for i, move in second_moves:
+            if i == move_value:
+                move2 = move
 
         third_moves = state.valid_third_moves()
         move3 = self.m3.choose_action(third_moves, features)
 
         return move1, move2, move3 
     
-    def play_step(self, state : GameState, actions : tuple[str, int, str]) -> tuple[GameState, int, bool, bool]:
+    def play_step(self, state : GameState, actions : tuple[str, list[int], str]) -> tuple[GameState, int, bool, bool]:
         move1, move2, move3 = actions
         done = False
         win = False
@@ -57,7 +61,7 @@ class CombinedModel:
         initial_hand = state.get_hand_value(state.player_1_hand)
         state.play(state.player_1_hand, move2, draw)
         reward = initial_hand - state.get_hand_value(state.player_1_hand)
-        state.play_opponent_turn()
+        state.playOpponentTurn()
         
         return state, reward, done, win
     
@@ -80,7 +84,7 @@ def main():
             action = sim.choose_actions(features, state)
             # action = sim.choose_actions(state)
             next_state, reward, done, win = sim.play_step(state, action)
-            sim.update_weights(state, action, reward, next_state, done)
+            sim.update_weights(action, reward, next_state, done)
             state = next_state
         won_games += 1 if win else 0
     print(won_games)
