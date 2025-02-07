@@ -26,8 +26,7 @@ class CombinedModel:
         last = np.array(last_five)
         completes_s = np.array(completes_set)
         completes_str = np.array(completes_straight)
-        basic_features = np.array(
-            [our_hand_value, turn, other_player_num_cards])
+        basic_features = [] #np.array([our_hand_value, turn, other_player_num_cards])
         return np.concatenate([basic_features, completes_s, completes_str, last])
 
     def game_iteration(self, state: GameState):
@@ -80,7 +79,9 @@ class CombinedModel:
 
 def main():
     won_games = 0
-    for episode in range(10000):
+    num_episodes = 1000
+    for episode in range(num_episodes):
+        # print(f"Running episode {episode}")
         sim = CombinedModel()
         state = GameState()
         done = False
@@ -92,12 +93,7 @@ def main():
             next_state, reward, done, win = sim.play_step(state, action)
             sim.update_weights(features, action, possible, reward)
             state = next_state
-            print(action)
-            print(state.player_1_hand)
-            # print(state.player_1_hand)
         won_games += 1 if win else 0
-    print(won_games)
-
-
+        
 if __name__ == "__main__":
     main()

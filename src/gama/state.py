@@ -122,10 +122,13 @@ class GameState:
             card = self.top_cards[0]
         self.top_cards = []
         return card
-
-    def play(self, hand: np.ndarray[int], cards: list[int], draw_idx: int) -> int:
-        print(f"Hand s as {hand}")
+    
+    def play(self, hand : np.ndarray[int], cards : list[int], draw_idx : int) -> int:
         self.discard += self.top_cards
+        nzs = np.nonzero(hand)[0]
+        for nz in nzs:
+            hand[nz] -= 1
+
         if draw_idx >= 0:
             card_drawn = self.draw(draw_idx)
         else:
@@ -133,12 +136,7 @@ class GameState:
         if len(cards) <= 1:
             self.top_cards = cards
         self.top_cards = [cards[0], cards[-1]]
-        nzs = np.nonzero(hand)[0]
-        for card in cards:
-            print(nzs[card])
-            hand[nzs[card]] -= 1
         hand[card_drawn] += 1
-        print(f"Hand e as {hand}")
         return card_drawn
 
     def playOpponentTurn(self) -> tuple[bool, bool]:
