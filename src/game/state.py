@@ -15,6 +15,9 @@ RANKS = {
     9 : "Ten", 10 : "Jack", 11 : "Queen", 12 : "King"
 }
 
+SUITS_REVERSE = {value : key for key, value in SUITS.items()}
+RANKS_REVERSE = {value : key for key, value in RANKS.items()}
+
 class GameState:
     def __init__(self) -> None:
         self.deck = np.arange(52)
@@ -35,14 +38,19 @@ class GameState:
         suit = SUITS[card // 13]
         rank = RANKS[card % 13]
         return f"{rank} of {suit}"
+    
+    def name_to_card(self, name : str) -> int:
+        word = name.split(" ")
+        rank, suit = RANKS_REVERSE[word[0]], SUITS_REVERSE[word[2]]
+        return suit * 13 + rank
 
     def hand_to_cards(self, hand: np.ndarray[int]) -> list[str]:
         cards = []
         for card in range(len(hand)):
-            suit = SUITS[card // 13]
-            rank = RANKS[card % 13]
+            # suit = SUITS[card // 13]
+            # rank = RANKS[card % 13]
             if hand[card] == 1:
-                cards.append(f"{rank} of {suit}")
+                cards.append(self.card_to_name(card))
         return cards
 
     def valid_move_values(self, hand: np.ndarray[int]) -> list[tuple[int, list[int]]]:
@@ -173,8 +181,11 @@ class GameState:
 
     def yaniv(self, hand: np.ndarray[int], other_hands: list[np.ndarray]) -> bool:
         our_value = self.get_hand_value(hand)
+        # print(our_value)
         for others in other_hands:
-            if our_value <= self.get_hand_value(others):
+            other_value = self.get_hand_value(others)
+            # print(other_value)
+            if our_value >= other_value:
                 return False
         return True
 

@@ -5,7 +5,7 @@ import os
 
 def trainModel() -> CombinedModel:
     won_games = 0
-    num_episodes = 10
+    num_episodes = 100
     sim = CombinedModel()
     for episode in range(num_episodes):
         # print(f"Running episode {episode}")
@@ -42,24 +42,24 @@ class Play:
             state = GameState()
             done = False
             print("Dealing Cards...")
-            time.sleep(2)
+            # time.sleep(2)
             while done != True:
-                print(f"Opponent has {state.hand_to_cards(state.player_1_hand)}")
+                # print(f"Opponent has {state.hand_to_cards(state.player_1_hand)}")
                 done, win = self.playModelMove(state)
                 if done:
-                    print(f"Opponent has {state.hand_to_cards(state.player_1_hand)}")
-
                     print(f"Your opponent called Yaniv! \
                           They have {state.get_hand_value(state.player_1_hand)} \
                             to your {state.get_hand_value(state.player_2_hand)}")
+                    print(f"Opponent has {state.hand_to_cards(state.player_1_hand)}")
                     message = "won!" if win == False else "lost!"
                     print(f"You have {message}")
                     break
                 opp = [state.card_to_name(card) for card in state.top_cards]
                 print(f"Your Opponent played {opp}")
-                print(f"Opponent has {state.hand_to_cards(state.player_1_hand)}")
-                print(f"Your hand is: {state.hand_to_cards(state.player_2_hand)}")
-                print(f"The card(s) on the top is/are {state.top_cards} ")
+                # print(f"Opponent has {state.hand_to_cards(state.player_1_hand)}")
+                our_hand = state.hand_to_cards(state.player_2_hand)
+                print(f"Your hand is: {our_hand}")
+                print(f"The card(s) on the top is/are {[state.card_to_name(card) for card in state.top_cards]} ")
                 move = input("Input the cards you want to play in their indices 0 1 2 ... ")  
                 if "Y" == move and state.can_yaniv(state.player_2_hand):
                     if state.can_yaniv(state.player_2_hand):
@@ -71,10 +71,11 @@ class Play:
                         break
                 move = [int(i) for i in move.split(" ")]
                 vmvs = state.valid_move_values(state.player_2_hand)
+                print(vmvs)
                 valid_moves = [i[1] for i in vmvs]
+                valid_moves_english = [[our_hand[j] for j in i[1]] for i in vmvs]
                 while move not in valid_moves:
-                    print(f"That move is invalid, please try again {move}")
-                    print(valid_moves)
+                    print(f"That move is invalid, please try again {valid_moves_english}")
                     move = input("Input the cards you want to play in their indices 0 1 2 ... ")   
                     move = [int(i) for i in move.split(" ")]
                 draw = input("-1 to draw from deck, 0 to draw first card, 1 to draw second card from pile ")

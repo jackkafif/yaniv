@@ -80,9 +80,10 @@ class CombinedModel:
 
 def main():
     won_games = 0
-    num_episodes = 1000
+    num_episodes = 100
     sim = CombinedModel()
     for episode in range(num_episodes):
+        print(f"Running episode {episode}")
         state = GameState()
         done = False
         while not done:
@@ -98,7 +99,7 @@ def main():
 
     won_games = 0
     for episode in range(num_episodes):
-        # print(f"Running episode {episode}")
+        print(f"Running episode {episode}")
         state = GameState()
         done = False
         while not done:
