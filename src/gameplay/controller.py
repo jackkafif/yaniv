@@ -1,10 +1,11 @@
 from game.combined_model import CombinedModel
 from game.state import GameState
 import time
+import os
 
 def trainModel() -> CombinedModel:
     won_games = 0
-    num_episodes = 1
+    num_episodes = 10
     sim = CombinedModel()
     for episode in range(num_episodes):
         # print(f"Running episode {episode}")
@@ -36,6 +37,7 @@ class Play:
         return done, win
     
     def play(self):
+        os.system('clear')
         while input("Would you like to play Yaniv? Y/N: ") == "Y":
             state = GameState()
             done = False
@@ -55,17 +57,30 @@ class Play:
                     break
                 opp = [state.card_to_name(card) for card in state.top_cards]
                 print(f"Your Opponent played {opp}")
+                print(f"Opponent has {state.hand_to_cards(state.player_1_hand)}")
                 print(f"Your hand is: {state.hand_to_cards(state.player_2_hand)}")
                 print(f"The card(s) on the top is/are {state.top_cards} ")
                 move = input("Input the cards you want to play in their indices 0 1 2 ... ")  
-                move = tuple([int(i) for i in move.split(" ")])  
-                valid_moves = [i[1] for i in state.valid_move_values(state.player_2_hand)]
+                if "Y" == move and state.can_yaniv(state.player_2_hand):
+                    if state.can_yaniv(state.player_2_hand):
+                        done = True
+                        if state.yaniv(state.player_2_hand, [state.player_1_hand]):
+                            print("You won!")
+                        else:
+                            print("You lost!")
+                        break
+                move = [int(i) for i in move.split(" ")]
+                vmvs = state.valid_move_values(state.player_2_hand)
+                valid_moves = [i[1] for i in vmvs]
                 while move not in valid_moves:
                     print(f"That move is invalid, please try again {move}")
+                    print(valid_moves)
                     move = input("Input the cards you want to play in their indices 0 1 2 ... ")   
-                    move = tuple([int(i) for i in move.split(" ")])
+                    move = [int(i) for i in move.split(" ")]
                 draw = input("-1 to draw from deck, 0 to draw first card, 1 to draw second card from pile ")
+                print(f"Your hand was {state.player_2_hand}")
                 state.play(state.player_2_hand, move, int(draw))
+                print(f"Your hand is now {state.player_2_hand}")
 
 if __name__ == "__main__":
     Play().play()

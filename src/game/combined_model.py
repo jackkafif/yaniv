@@ -83,7 +83,6 @@ def main():
     num_episodes = 1000
     sim = CombinedModel()
     for episode in range(num_episodes):
-        # print(f"Running episode {episode}")
         state = GameState()
         done = False
         while not done:
