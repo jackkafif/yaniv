@@ -9,10 +9,12 @@ import copy
 
 
 class CombinedModel:
-    def __init__(self):
-        self.m1 = ModelA()
-        self.m2 = ModelB()
-        self.m3 = ModelC()
+    def __init__(self, A_learning_rate=0.01, A_discount_factor=0.90, A_explore_prob=0.40,
+                 B_learning_rate=0.01, B_discount_factor=0.90, B_explore_prob=0.40,
+                 C_learning_rate=0.01, C_discount_factor=0.90, C_explore_prob=0.40,):
+        self.m1 = ModelA(A_learning_rate, A_discount_factor, A_explore_prob)
+        self.m2 = ModelB(B_learning_rate, B_discount_factor, B_explore_prob)
+        self.m3 = ModelC(C_learning_rate, C_discount_factor, C_explore_prob)
 
     # def features(self, state : GameState):
     #     our_hand_value, _, other_player_num_cards, turn, last_five, completes_set, completes_straight = state.get_features()
@@ -26,7 +28,8 @@ class CombinedModel:
         last = np.array(last_five)
         completes_s = np.array(completes_set)
         completes_str = np.array(completes_straight)
-        basic_features = [] #np.array([our_hand_value, turn, other_player_num_cards])
+        # np.array([our_hand_value, turn, other_player_num_cards])
+        basic_features = []
         return np.concatenate([basic_features, completes_s, completes_str, last])
 
     def game_iteration(self, state: GameState):
@@ -94,6 +97,8 @@ def main():
             sim.update_weights(features, action, possible, reward)
             state = next_state
         won_games += 1 if win else 0
-        
+    print(won_games)
+
+
 if __name__ == "__main__":
     main()

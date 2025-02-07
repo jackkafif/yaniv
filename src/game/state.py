@@ -122,8 +122,8 @@ class GameState:
             card = self.top_cards[0]
         self.top_cards = []
         return card
-    
-    def play(self, hand : np.ndarray[int], cards : list[int], draw_idx : int) -> int:
+
+    def play(self, hand: np.ndarray[int], cards: list[int], draw_idx: int) -> int:
         self.discard += self.top_cards
         nzs = np.nonzero(hand)[0]
         for nz in nzs:
