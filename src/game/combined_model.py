@@ -1,9 +1,9 @@
 from __future__ import annotations
-from model_a import ModelA
-from model_b import ModelB
-from model_c import ModelC
-from helpers import *
-from state import GameState
+from game.model_a import ModelA
+from game.model_b import ModelB
+from game.model_c import ModelC
+from game.helpers import *
+from game.state import GameState
 import numpy as np
 import copy
 
@@ -26,7 +26,7 @@ class CombinedModel:
         last = np.array(last_five)
         completes_s = np.array(completes_set)
         completes_str = np.array(completes_straight)
-        basic_features = [] #np.array([our_hand_value, turn, other_player_num_cards])
+        basic_features = np.array([our_hand_value, turn, other_player_num_cards])
         return np.concatenate([basic_features, completes_s, completes_str, last])
 
     def game_iteration(self, state: GameState):
@@ -50,7 +50,7 @@ class CombinedModel:
 
         return move1, move2, move3, first_moves, second_moves, third_moves
 
-    def play_step(self, state: GameState, actions: tuple[str, list[int], str]) -> tuple[GameState, int, bool, bool]:
+    def play_step(self, state: GameState, actions: tuple[str, list[int], str], playOpp = True) -> tuple[GameState, int, bool, bool]:
         move1, move2, move3 = actions
         done = False
         win = False
@@ -63,7 +63,8 @@ class CombinedModel:
         initial_hand = state.get_hand_value(state.player_1_hand)
         state.play(state.player_1_hand, move2[1], draw)
         reward = initial_hand - state.get_hand_value(state.player_1_hand)
-        state.playOpponentTurn()
+        if playOpp:
+            state.playOpponentTurn()
 
         return state, reward, done, win
 
@@ -80,9 +81,9 @@ class CombinedModel:
 def main():
     won_games = 0
     num_episodes = 1000
+    sim = CombinedModel()
     for episode in range(num_episodes):
         # print(f"Running episode {episode}")
-        sim = CombinedModel()
         state = GameState()
         done = False
         while not done:
@@ -94,6 +95,24 @@ def main():
             sim.update_weights(features, action, possible, reward)
             state = next_state
         won_games += 1 if win else 0
+    print(won_games / num_episodes)
+
+    won_games = 0
+    for episode in range(num_episodes):
+        # print(f"Running episode {episode}")
+        state = GameState()
+        done = False
+        while not done:
+            features = sim.features(state)
+            m1, m2, m3, p1, p2, p3 = sim.choose_actions(features, state)
+            action = (m1, m2, m3)
+            possible = (p1, p2, p3)
+            next_state, reward, done, win = sim.play_step(state, action)
+            sim.update_weights(features, action, possible, reward)
+            state = next_state
+        won_games += 1 if win else 0
+    print(won_games / num_episodes)
+
         
 if __name__ == "__main__":
     main()

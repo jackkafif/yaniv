@@ -1,4 +1,4 @@
-from superModel import SuperModel
+from game.superModel import SuperModel
 
 class ModelA(SuperModel):
 

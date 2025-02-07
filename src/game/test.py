@@ -1,7 +1,7 @@
 import numpy as np
-from model_a import *
-from model_b import *
-from model_c import *
+from game.model_a import *
+from game.model_b import *
+from game.model_c import *
 
 def test_model_a():
     features = np.array([1, 2, 3])

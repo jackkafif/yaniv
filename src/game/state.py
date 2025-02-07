@@ -1,7 +1,19 @@
 from __future__ import annotations
 import numpy as np
-import helpers
+import game.helpers as helpers
 
+SUITS = {
+    0 : "Clubs",
+    1 : "Spades",
+    2 : "Hearts",
+    3 : "Diamonds"
+}
+
+RANKS = {
+    0 : "Ace", 1 : "One", 2 : "Two", 3 : "Three", 4 : "Four",
+    5 : "Five", 6 : "Six", 7 : "Seven", 8 : "Eight", 9 : "Nine",
+    10 : "Ten", 11 : "Jack", 12 : "Queen", 13 : "King"
+}
 
 class GameState:
     def __init__(self) -> None:
@@ -19,11 +31,26 @@ class GameState:
         self.cards_played = []
         self.over = False
 
+    def card_to_name(self, card):
+        suit = SUITS[card // 13]
+        rank = RANKS[card % 13]
+        return f"{rank} of {suit}"
+
+    def hand_to_cards(self, hand: np.ndarray[int]) -> list[str]:
+        cards = []
+        for card in range(len(hand)):
+            suit = SUITS[card // 13]
+            rank = RANKS[card % 13]
+            if hand[card] == 1:
+                cards.append(f"{rank} of {suit}")
+        return cards
+
     def valid_move_values(self, hand: np.ndarray[int]) -> list[tuple[int, list[int]]]:
         valid_moves = []
         nonzeros = np.nonzero(hand)
-        for i in nonzeros[0]:
+        for idx, i in enumerate(nonzeros[0]):
             x = self.move_value(hand, i)
+            valid_moves += [((min(i + 1, 10), [idx]))]
             valid_moves += self.move_value(hand, i)
         return valid_moves
 
