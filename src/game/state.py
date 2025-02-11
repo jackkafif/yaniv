@@ -149,17 +149,17 @@ class GameState:
                  1 and hand_suit[(rank + 2) % 13] == 1)
         return between or before or after
 
-    def get_features(self) -> tuple[int, list[int], int, int, list[int], bool, bool]:
-        our_hand_value = self.get_hand_value(self.player_1_hand)
-        our_cards = len(self.player_1_hand)
-        other_player_num_cards = len(self.player_2_hand)
+    def get_features(self, hand : np.ndarray, other_hand : np.ndarray) -> tuple[int, list[int], int, int, list[int], bool, bool]:
+        our_hand_value = self.get_hand_value(hand)
+        our_cards = len(hand)
+        other_player_num_cards = len(other_hand)
         turn = self.turn
         last_five = self.cards_played[-5:]
         top_cards = self.top_cards
         completes_set = [self.completes_set(
-            self.player_1_hand, card) for card in top_cards]
+            hand, card) for card in top_cards]
         completes_straight = [self.completes_straight(
-            self.player_1_hand, card) for card in top_cards]
+            hand, card) for card in top_cards]
         return our_hand_value, our_cards, other_player_num_cards, turn, last_five, completes_set, completes_straight
 
     def get_hand_value(self, hand: np.ndarray[int]) -> int:

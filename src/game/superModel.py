@@ -2,7 +2,7 @@ import numpy as np
 
 class SuperModel:
     def __init__(self, initial_weight_dictionary):
-        self.learning_rate = 0.01
+        self.learning_rate = 0.10
         self.discount_factor = 0.90
         self.explore_prob = 0.20
         self.weights = initial_weight_dictionary
