@@ -10,10 +10,12 @@ import sys
 
 
 class CombinedModel:
-    def __init__(self):
-        self.m1 = ModelA()
-        self.m2 = ModelB()
-        self.m3 = ModelC()
+    def __init__(self, A_learning_rate=0.01, A_discount_factor=0.90, A_explore_prob=0.40,
+                 B_learning_rate=0.01, B_discount_factor=0.90, B_explore_prob=0.40,
+                 C_learning_rate=0.01, C_discount_factor=0.90, C_explore_prob=0.40,):
+        self.m1 = ModelA(A_learning_rate, A_discount_factor, A_explore_prob)
+        self.m2 = ModelB(B_learning_rate, B_discount_factor, B_explore_prob)
+        self.m3 = ModelC(C_learning_rate, C_discount_factor, C_explore_prob)
 
     # def features(self, state : GameState):
     #     our_hand_value, _, other_player_num_cards, turn, last_five, completes_set, completes_straight = state.get_features()
