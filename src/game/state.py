@@ -1,22 +1,23 @@
 from __future__ import annotations
 import numpy as np
-import game.helpers as helpers
+import helpers as helpers
 
 SUITS = {
-    0 : "Clubs",
-    1 : "Spades",
-    2 : "Hearts",
-    3 : "Diamonds"
+    0: "Clubs",
+    1: "Spades",
+    2: "Hearts",
+    3: "Diamonds"
 }
 
 RANKS = {
-    0 : "Ace", 1 : "Two", 2 : "Three", 3 : "Four",
-    4 : "Five", 5 : "Six", 6 : "Seven", 7 : "Eight", 8 : "Nine",
-    9 : "Ten", 10 : "Jack", 11 : "Queen", 12 : "King"
+    0: "Ace", 1: "Two", 2: "Three", 3: "Four",
+    4: "Five", 5: "Six", 6: "Seven", 7: "Eight", 8: "Nine",
+    9: "Ten", 10: "Jack", 11: "Queen", 12: "King"
 }
 
-SUITS_REVERSE = {value : key for key, value in SUITS.items()}
-RANKS_REVERSE = {value : key for key, value in RANKS.items()}
+SUITS_REVERSE = {value: key for key, value in SUITS.items()}
+RANKS_REVERSE = {value: key for key, value in RANKS.items()}
+
 
 class GameState:
     def __init__(self) -> None:
@@ -38,8 +39,8 @@ class GameState:
         suit = SUITS[card // 13]
         rank = RANKS[card % 13]
         return f"{rank} of {suit}"
-    
-    def name_to_card(self, name : str) -> int:
+
+    def name_to_card(self, name: str) -> int:
         word = name.split(" ")
         rank, suit = RANKS_REVERSE[word[0]], SUITS_REVERSE[word[2]]
         return suit * 13 + rank
@@ -57,7 +58,7 @@ class GameState:
         valid_moves = []
         nonzeros = np.nonzero(hand)
         for i in range(len(nonzeros[0])):
-            #print(i)
+            # print(i)
             valid_moves += [(self.card_value(nonzeros[0][i] % 13), [i])]
         # print(f"VMS {valid_moves}")
         for idx, i in enumerate(nonzeros[0]):
@@ -70,8 +71,8 @@ class GameState:
         if len(self.top_cards) == 2:
             valid_moves.append("Card 1")
         return valid_moves
-    
-    def card_value(self, rank : int):
+
+    def card_value(self, rank: int):
         if rank == 0:
             return 1
         elif rank > 9:
@@ -86,44 +87,49 @@ class GameState:
         hand_copy = hand.reshape((4, 13))  # Reshape hand to suits and ranks
 
         # Assuming COMBINATIONS is defined elsewhere and suitable for the context
-        #print("HEE "  + str(len(np.nonzero(hand)[0])))
+        # print("HEE "  + str(len(np.nonzero(hand)[0])))
         set_combinations = helpers.COMBINATIONS[4]
 
         hand_suit = hand_copy[suit]
         value_tups = []
-        
+
         # Calculate potential sequence after the given card
         nonzeros = list(np.nonzero(hand)[0])
         work = True
         for i in range(3):
             work = work and hand[(card + i) % 52] == 1
         if work:
-            value_tups.append((self.card_value(rank) + self.card_value(rank + 1) + self.card_value(rank + 2), [nonzeros.index(card) + i for i in range(3)]))
+            value_tups.append((self.card_value(rank) + self.card_value(rank + 1) +
+                              self.card_value(rank + 2), [nonzeros.index(card) + i for i in range(3)]))
         # indices_after = [(rank + i) % 13 for i in range(1, 4)]
         # if all(hand_suit[index] == 1 for index in indices_after[:2]):
         #     after_value = sum(self.card_value((rank + i) % 13) for i in range(1, 4))
         #     indices = [rank] + indices_after[:2]
         #     value_tups.append((after_value, [nonzeros.index(card) + i for i in range(1, 4)]))
 
-        #print(f"VTUPS {value_tups}")
-        #print(f"NZS {nonzeros}")
+        # print(f"VTUPS {value_tups}")
+        # print(f"NZS {nonzeros}")
         # Check set combinations for matching ranks across different suits
         for set_comb in set_combinations:
             if len(set_comb) >= 2:
                 works = True
-                #print(set_comb)
+                # print(set_comb)
                 for s in set_comb:
                     if hand_copy[s, rank] == 0:
                         works = False
                     # else:
-                        # set_tup 
+                        # set_tup
                 # if works:
             if len(set_comb) >= 2 and all(hand_copy[s, rank] == 1 for s in set_comb):
-                #print(f"Works {set_comb}")
-                set_value = sum(self.card_value(rank) for s in set_comb)  # Calculate total value for set
-                value_tups.append((set_value, [nonzeros.index((s * 13) + rank) for s in set_comb])) # Need it to be index in hand of nzs
+                # print(f"Works {set_comb}")
+                set_value = sum(self.card_value(rank)
+                                # Calculate total value for set
+                                for s in set_comb)
+                # Need it to be index in hand of nzs
+                value_tups.append(
+                    (set_value, [nonzeros.index((s * 13) + rank) for s in set_comb]))
 
-        #print(f"VTS {value_tups}")
+        # print(f"VTS {value_tups}")
 
         return value_tups
 
@@ -149,7 +155,7 @@ class GameState:
                  1 and hand_suit[(rank + 2) % 13] == 1)
         return between or before or after
 
-    def get_features(self, hand : np.ndarray, other_hand : np.ndarray) -> tuple[int, list[int], int, int, list[int], bool, bool]:
+    def get_features(self, hand: np.ndarray, other_hand: np.ndarray) -> tuple[int, list[int], int, int, list[int], bool, bool]:
         our_hand_value = self.get_hand_value(hand)
         our_cards = len(hand)
         other_player_num_cards = len(other_hand)
@@ -163,6 +169,7 @@ class GameState:
         return our_hand_value, our_cards, other_player_num_cards, turn, last_five, completes_set, completes_straight
 
     def get_hand_value(self, hand: np.ndarray[int]) -> int:
+        # Bug here, sometimes hand called as not an array, just as a single number
         sum = (hand.reshape((4, 13)) * np.arange(1, 14)).clip(0, 10).sum()
         return sum
 
@@ -196,27 +203,27 @@ class GameState:
             card = self.top_cards[0]
         self.top_cards = []
         return card
-    
-    def play(self, hand : np.ndarray[int], cards : list[int], draw_idx : int) -> int:
-        #print("-----\n\n\n")
+
+    def play(self, hand: np.ndarray[int], cards: list[int], draw_idx: int) -> int:
+        # print("-----\n\n\n")
         self.discard += self.top_cards
         nzs = np.nonzero(hand)[0]
         h = hand.copy()
-        #print(f"Hand is {self.hand_to_cards(hand)}")
-        #print(f"Hand is {hand}")
-        #print(f"Cards iss: {cards}")
-        #print(f"NZS are {nzs}")
-        #print(f"Hands of nzs is {hand[nzs]}")
+        # print(f"Hand is {self.hand_to_cards(hand)}")
+        # print(f"Hand is {hand}")
+        # print(f"Cards iss: {cards}")
+        # print(f"NZS are {nzs}")
+        # print(f"Hands of nzs is {hand[nzs]}")
         counter = 0
         for nz in nzs:
             if counter in cards:
-                #print(f"playing {self.card_to_name(nz)}")
+                # print(f"playing {self.card_to_name(nz)}")
                 hand[nz] -= 1
             counter += 1
 
-        #print(hand)
-        #print(cards)
-        #print(nzs)
+        # print(hand)
+        # print(cards)
+        # print(nzs)
         if draw_idx >= 0:
             card_drawn = self.draw(draw_idx)
         else:
@@ -231,7 +238,7 @@ class GameState:
             # print(f"NZEZS : {nzs}")
             self.top_cards = [nzs[cards[0]], nzs[cards[-1]]]
         hand[card_drawn] += 1
-        #print("-----\n\n\n")
+        # print("-----\n\n\n")
         return card_drawn
 
     def playOpponentTurn(self) -> tuple[bool, bool]:

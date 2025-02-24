@@ -23,7 +23,8 @@ class SuperModel:
         possible_actions.sort(key=lambda x: self.predict_q(x, features))
         next_action = possible_actions[0]
         current_q = self.predict_q(action, features)
-        best_future_q = 0 if next_action == - 1 else self.predict_q(next_action, next_features)
+        best_future_q = 0 if next_action == - \
+            1 else self.predict_q(next_action, next_features)
         self.weights[action] += (self.learning_rate * (
             reward + self.discount_factor * best_future_q - current_q) * features).sum()
 

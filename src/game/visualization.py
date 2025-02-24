@@ -20,7 +20,7 @@ def visualize_wins_over_time(args):
     sim = CombinedModel(A_explore_prob=0.8,
                         B_explore_prob=0.8, C_explore_prob=0.8)
     sim2 = CombinedModel(A_explore_prob=0.8,
-                        B_explore_prob=0.8, C_explore_prob=0.8)
+                         B_explore_prob=0.8, C_explore_prob=0.8)
     for episode in range(num_episodes):
         # print(f"Running episode {episode}")
         state = GameState()
@@ -31,13 +31,14 @@ def visualize_wins_over_time(args):
             state, done, win = sim_step(sim, state, player1_hand, player2_hand)
             if done and win:
                 break
-            state, done, win = sim_step(sim2, state, player2_hand, player1_hand)
+            state, done, win = sim_step(
+                sim2, state, player2_hand, player1_hand)
             if done and win:
                 win = False
                 break
 
     sim3 = CombinedModel(A_explore_prob=0.8,
-                        B_explore_prob=0.8, C_explore_prob=0.8)
+                         B_explore_prob=0.8, C_explore_prob=0.8)
     for episode in range(num_episodes):
         # print(f"Running episode {episode}")
         state = GameState()
@@ -48,7 +49,8 @@ def visualize_wins_over_time(args):
             state, done, win = sim_step(sim, state, player1_hand, player2_hand)
             if done and win:
                 break
-            state, done, win = sim_step(sim3, state, player2_hand, player1_hand)
+            state, done, win = sim_step(
+                sim3, state, player2_hand, player1_hand)
             if done and win:
                 win = False
                 break
@@ -56,8 +58,54 @@ def visualize_wins_over_time(args):
         x_array.append(episode)
         y_array.append(won_games)
 
-
     plt.plot(x_array, y_array)
+    plt.show()
+
+
+def visualize_features_over_time():
+    x_array = []
+    feature_1_array = []
+    feature_2_array = []
+    feature_3_array = []
+    feature_4_array = []
+    feature_5_array = []
+
+    num_episodes = 7
+    sim = CombinedModel(A_explore_prob=0.8,
+                        B_explore_prob=0.8, C_explore_prob=0.8)
+    sim2 = CombinedModel(A_explore_prob=0.8,
+                         B_explore_prob=0.8, C_explore_prob=0.8)
+    for episode in range(num_episodes):
+        # print(f"Running episode {episode}")
+        state = GameState()
+        done = False
+        player1_hand = state.player_1_hand
+        player2_hand = state.player_2_hand
+        while not done:
+            state, done, win = sim_step(sim, state, player1_hand, player2_hand)
+            features = sim.features(
+                state, state.player_1_hand, state.player_2_hand)
+            feature_1_array.append(features[0])
+            feature_2_array.append(features[1])
+            feature_3_array.append(features[2])
+            feature_4_array.append(features[3])
+            feature_5_array.append(features[4])
+            x_array.append(episode)
+            if done and win:
+                break
+            state, done, win = sim_step(
+                sim2, state, player2_hand, player1_hand)
+            if done and win:
+                win = False
+                break
+
+    plt.plot(x_array, feature_1_array)
+    plt.plot(x_array, feature_2_array)
+    plt.plot(x_array, feature_3_array)
+    plt.plot(x_array, feature_4_array)
+    plt.plot(x_array, feature_5_array)
+    plt.xlabel("Iterations")
+    plt.ylabel("Features")
     plt.show()
 
 
@@ -74,12 +122,18 @@ def visualize_probs_vs_win_percentage():
             state = GameState()
             done = False
             while not done:
-                features = sim.features(state)
-                m1, m2, m3, p1, p2, p3 = sim.choose_actions(features, state)
+                features = sim.features(
+                    state, state.player_1_hand, state.player_2_hand)
+                m1, m2, m3, p1, p2, p3 = sim.choose_actions(
+                    state.player_1_hand, features, state)
                 action = (m1, m2, m3)
                 possible = (p1, p2, p3)
-                next_state, reward, done, win = sim.play_step(state, action)
-                sim.update_weights(features, action, possible, reward)
+                next_state, reward, done, win = sim.play_step(
+                    state.player_1_hand, state.player_2_hand, state, action)
+                next_features = sim.features(
+                    next_state, next_state.player_1_hand, next_state.player_2_hand)
+                sim.update_weights(features, next_features,
+                                   action, possible, reward)
                 state = next_state
             won_games += 1 if win else 0
         x_array.append(won_games/1000)
@@ -91,7 +145,7 @@ def visualize_probs_vs_win_percentage():
 
 
 def main():
-    visualize_wins_over_time(sys.argv)
+    visualize_features_over_time()
 
 
 if __name__ == "__main__":
