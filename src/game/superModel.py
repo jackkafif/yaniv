@@ -9,14 +9,14 @@ class SuperModel:
         self.weights = initial_weight_dictionary
 
     def predict_q(self, action, features: np.ndarray) -> int:
-        print(f"weights {action} {self.weights[action]}")
-        print(f"feats {features}")
+        # print(f"weights {action} {self.weights[action]}")
+        # print(f"feats {features}")
         # print(f"feats: {features}")
         if np.isnan(features).any() or np.isinf(features).any():
             raise ValueError(f"Features contain NaN or Inf")
         if np.isnan(self.weights[action]).any() or np.isinf(self.weights[action]).any():
             raise ValueError("Weights contain NaN or Inf")
-        print((self.weights[action] * features).sum())
+        # print((self.weights[action] * features).sum())
         return (self.weights[action] * features).sum()
 
     def update_weights(self, action, possible_actions: list, reward: int, features: np.ndarray, next_features: np.ndarray):

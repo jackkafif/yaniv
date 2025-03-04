@@ -5,11 +5,11 @@ import os
 
 def trainModel() -> CombinedModel:
     won_games = 0
-    num_episodes = 100
+    num_episodes = 10000
     sim = CombinedModel()
     sim2 = CombinedModel()
     for episode in range(num_episodes):
-        # print(f"Running episode {episode}")
+        print(f"Running episode {episode}")
         state = GameState()
         done = False
         player1_hand = state.player_1_hand
@@ -23,6 +23,9 @@ def trainModel() -> CombinedModel:
                 win = False
                 break
         won_games += 1 if win else 0
+    print(sim.m1.weights)
+    print(sim.m2.weights)
+    print(sim.m3.weights)
     return sim
 
 class Play:
@@ -40,6 +43,7 @@ class Play:
         return done, win
     
     def play(self):
+        return
         os.system('clear')
         while input("Would you like to play Yaniv? Y/N: ") == "Y":
             state = GameState()

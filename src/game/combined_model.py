@@ -1,144 +1,141 @@
 from __future__ import annotations
-from game.model_a import ModelA
-from game.model_b import ModelB
-from game.model_c import ModelC
 from game.helpers import *
 from game.state import GameState
 import numpy as np
 import copy
 import sys
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import random
+from collections import deque
 
+POSSIBLE_MOVES = generate_combinations(5)
+N_MOVES = len(POSSIBLE_MOVES)
 
-class CombinedModel:
-    def __init__(self, A_learning_rate=0.01, A_discount_factor=0.90, A_explore_prob=0.40,
-                 B_learning_rate=0.01, B_discount_factor=0.90, B_explore_prob=0.40,
-                 C_learning_rate=0.01, C_discount_factor=0.90, C_explore_prob=0.40,):
-        self.m1 = ModelA(A_learning_rate, A_discount_factor, A_explore_prob)
-        self.m2 = ModelB(B_learning_rate, B_discount_factor, B_explore_prob)
-        self.m3 = ModelC(C_learning_rate, C_discount_factor, C_explore_prob)
+class CombinedModel(nn.Module):
+    def __init__(self, learning_rate=0.001, gamma=0.99, memory_size=10000):
+        super(CombinedModel, self).__init__()
+        self.network = nn.Sequential(
+            nn.Linear(111, 512),  # Assuming input state size of 111 for illustration
+            nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Linear(512, 300)  # Assuming 300 different action outputs
+        )
+        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+        self.gamma = gamma  # Discount factor for future rewards
+        self.memory = deque(maxlen=memory_size)  # Experience replay memory
+        self.loss_function = nn.MSELoss()
 
-    # def features(self, state : GameState):
-    #     our_hand_value, _, other_player_num_cards, turn, last_five, completes_set, completes_straight = state.get_features()
-    #     last = np.array([i for i in last_five])
-    #     completes_s = np.array([c for c in completes_set])
-    #     completes_str = np.array([c for c in completes_straight])
-    #     return np.concatenate(np.array([our_hand_value, turn, other_player_num_cards]), np.concatenate(np.concatenate(completes_s, completes_str), last))
+    def forward(self, x):
+        return self.network(x)
+    
+    def decide_action(self, state, epsilon):
+        if random.random() < epsilon:
+            return random.randint(0, 299)
+        else:
+            with torch.no_grad():
+                return self.forward(state).argmax().item()
+            
+    def store_experience(self, state, action, reward, next_state, done):
+        self.memory.append((state, action, reward, next_state, done))
 
+    def replay_experiences(self, batch_size):
+        if len(self.memory) < batch_size:
+            return  # Not enough experiences to sample a batch
+        
+        batch = random.sample(self.memory, batch_size)
+        states, actions, rewards, next_states, dones = zip(*batch)
+
+        states = torch.stack(states)
+        next_states = torch.stack(next_states)
+        actions = torch.tensor(actions)
+        rewards = torch.tensor(rewards, dtype=torch.float32)
+        dones = torch.tensor(dones, dtype=torch.float32)
+
+        # Current Q values
+        current_q_values = self.network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+
+        # Next Q values
+        next_q_values = self.network(next_states).max(1)[0]
+        next_q_values[dones] = 0.0  # Zero out the next Q values where the episode has ended
+
+        # Expected Q values
+        expected_q_values = rewards + self.gamma * next_q_values
+
+        # Compute loss
+        loss = self.loss_function(current_q_values, expected_q_values)
+
+        # Backpropagation
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+    
     def features(self, state: GameState, hand : np.ndarray, other_hand : np.ndarray):
-        our_hand_value, _, other_player_num_cards, turn, last_five, completes_set, completes_straight = state.get_features(hand, other_hand)
-        last = np.array(last_five)
-        completes_s = np.array(completes_set)
-        completes_str = np.array(completes_straight)
-        basic_features = np.array([our_hand_value, turn, other_player_num_cards])
-        ret = np.concatenate([basic_features, completes_s, completes_str, last])
-        return ret
+        other_player_num_cards, turn, top_cards = state.get_features(hand, other_hand)
+        basic_features = np.array([hand, top_cards, other_player_num_cards, turn])
+        return torch.FloatTensor(basic_features)
 
-    def game_iteration(self, state: GameState):
-        features = self.features(state)
-        move1, move2, move3 = self.choose_actions(features, state)
+    def make_decision(self, output_vector):
+        # Decode the output vector to choose an action
+        # This will require additional logic to map indices to specific actions
+        # For example, certain ranges of the output vector might correspond to specific card plays
+        action_index = torch.argmax(output_vector).item()
+        return action_index  # Placeholder for action decision logic
 
-    def choose_actions(self, hand : np.ndarray, features: np.ndarray[int], state: GameState) -> tuple:
-        first_moves = ["Continue"] + \
-            (["Yaniv"] if state.can_yaniv(hand) else [])
-        move1 = self.m1.choose_action(first_moves, features)
+def play_game(agent, game_env, epsilon_start=1.0, epsilon_end=0.1, epsilon_decay=0.995, batch_size=32):
+    epsilon = epsilon_start
+    while not game_env.is_game_over():
+        current_player = game_env.current_player
+        current_state = game_env.get_game_state(current_player)  # Get the current state for the agent
+        action = agent.decide_action(current_state, epsilon)  # Let the agent decide the best action using epsilon-greedy policy
+        next_state, reward, done = game_env.execute_action(current_player, action)  # Execute the action in the environment
+        
+        agent.store_experience(current_state, action, reward, next_state, done)
+        
+        if done:
+            game_env.reset()
 
-        second_moves = state.valid_move_values(hand)
-        move_value = self.m2.choose_action(
-            [i[0] for i in second_moves], features)
-        for i, move in second_moves:
-            if i == move_value:
-                move2 = (i, move)
+        agent.replay_experiences(batch_size)  # Train the agent by replaying experiences
 
-        third_moves = state.valid_third_moves()
-        move3 = self.m3.choose_action(third_moves, features)
+        # Decay epsilon
+        epsilon = max(epsilon_end, epsilon_decay * epsilon)
 
-        return move1, move2, move3, first_moves, second_moves, third_moves
+def train_agent(agent : CombinedModel, game_env : GameState, num_episodes : int, batch_size : int = 32, max_steps_per_episode : int = 1000):
+    epsilon_start = 1.0
+    epsilon_end = 0.1
+    epsilon_decay = 0.995
 
-    def play_step(self, hand : np.ndarry, other_hands : list[np.ndarray], state: GameState, actions: tuple[str, list[int], str]) -> tuple[GameState, int, bool, bool]:
-        move1, move2, move3 = actions
-        done = False
-        win = False
-        if move1 == "Yaniv":
-            done = True
-            win = state.yaniv(hand, other_hands)
-            reward1 = 10 if win else -5
-        else:
-            reward1 = 1
-        draw = -1 if move3 == "Deck" else 0 if move3 == "Draw 0" else 1
-        initial_hand = state.get_hand_value(hand)
-        state.play(hand, move2[1], draw)
-        delta_hand = initial_hand - state.get_hand_value(hand)
-        # print(delta_hand)
-        if delta_hand < 0:
-            reward3 = 1
-        else:
-            reward3 = -2
+    for episode in range(num_episodes):
+        current_state = game_env.reset()
+        epsilon = epsilon_start  # Reset epsilon at the start of each episode
 
-        return state, (reward1, delta_hand, reward3), done, win
+        for step in range(max_steps_per_episode):
+            action = agent.decide_action(current_state, epsilon)
+            game_env.play(action)
+            next_state, reward, done = game_env.execute_action(action)
+            
+            agent.store_experience(current_state, action, reward, next_state, done)
+            agent.replay_experiences(batch_size)
 
-    def update_weights(self, features: np.ndarray[int], next_features: np.ndarray[int], actions: tuple[str, int, str],
-                       possible_actions: tuple[list], reward: int) -> None:
-        move1, move2, move3 = actions
-        poss1, poss2, poss3 = possible_actions
-        self.m1.update_weights(move1, poss1, reward[0], features, next_features)
-        self.m2.update_weights(move2[0], [p[0]
-                               for p in poss2], reward[1], features, next_features)
-        self.m3.update_weights(move3, poss3, reward[2], features, next_features)
+            current_state = next_state
+            epsilon = max(epsilon_end, epsilon_decay * epsilon)
 
-def sim_step(sim : CombinedModel, state : GameState, hand : np.ndarray, other_hand : np.ndarray):
-    features = sim.features(state, hand, other_hand)
-    m1, m2, m3, p1, p2, p3 = sim.choose_actions(hand, features, state)
-    action = (m1, m2, m3)
-    possible = (p1, p2, p3)
-    next_state, reward, done, win = sim.play_step(hand, [other_hand], state, action)
-    next_features = sim.features(next_state, hand, other_hand)
-    sim.update_weights(features, next_features, action, possible, reward)
-    state = next_state
-    return state, done, win
+            if done:
+                break
+
+        if (episode + 1) % 10 == 0:
+            print(f"Episode {episode + 1}: Training ongoing.")
+
 
 def main(args):
-    
-    won_games = 0
-    num_episodes = int(args[1])
-    sim = CombinedModel()
-    sim2 = CombinedModel()
-    for episode in range(num_episodes):
-        # print(f"Running episode {episode}")
-        state = GameState()
-        done = False
-        player1_hand = state.player_1_hand
-        player2_hand = state.player_2_hand
-        while not done:
-            state, done, win = sim_step(sim, state, player1_hand, player2_hand)
-            if done and win:
-                break
-            state, done, win = sim_step(sim2, state, player2_hand, player1_hand)
-            if done and win:
-                win = False
-                break
-        won_games += 1 if win else 0
-        # print(won_games / (episode + 1))
 
-    print("---------")
+    game_env = GameState()
+    agent = CombinedModel()
 
-    won_games = 0
-    sim3 = CombinedModel()
-    for episode in range(num_episodes):
-        state = GameState()
-        done = False
-        player1_hand = state.player_1_hand
-        player2_hand = state.player_2_hand
-        while not done:
-            state, done, win = sim_step(sim, state, player1_hand, player2_hand)
-            if done and win:
-                break
-            state, done, win = sim_step(sim3, state, player2_hand, player1_hand)
-            if done and win:
-                win = False
-                break
-        won_games += 1 if win else 0
-        # print(won_games / (episode + 1))
+    # play_game(agent, game_env)
+    train_agent(agent, game_env, num_episodes=1000)
 
-        
 if __name__ == "__main__":
     main(sys.argv)

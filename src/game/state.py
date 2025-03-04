@@ -34,6 +34,9 @@ class GameState:
         self.cards_played = []
         self.over = False
 
+    def reset(self) -> GameState:
+        return GameState()
+
     def card_to_name(self, card):
         suit = SUITS[card // 13]
         rank = RANKS[card % 13]
@@ -52,6 +55,12 @@ class GameState:
             if hand[card] == 1:
                 cards.append(self.card_to_name(card))
         return cards
+    
+    def get_top_cards(self) -> np.ndarray[int]:
+        top = np.zeros(52)
+        for card in self.top_cards:
+            top[card] += 1
+        return top
 
     def valid_move_values(self, hand: np.ndarray[int]) -> list[tuple[int, list[int]]]:
         valid_moves = []
@@ -99,31 +108,16 @@ class GameState:
             work = work and hand[(card + i) % 52] == 1
         if work:
             value_tups.append((self.card_value(rank) + self.card_value(rank + 1) + self.card_value(rank + 2), [nonzeros.index(card) + i for i in range(3)]))
-        # indices_after = [(rank + i) % 13 for i in range(1, 4)]
-        # if all(hand_suit[index] == 1 for index in indices_after[:2]):
-        #     after_value = sum(self.card_value((rank + i) % 13) for i in range(1, 4))
-        #     indices = [rank] + indices_after[:2]
-        #     value_tups.append((after_value, [nonzeros.index(card) + i for i in range(1, 4)]))
 
-        #print(f"VTUPS {value_tups}")
-        #print(f"NZS {nonzeros}")
-        # Check set combinations for matching ranks across different suits
         for set_comb in set_combinations:
             if len(set_comb) >= 2:
                 works = True
-                #print(set_comb)
                 for s in set_comb:
                     if hand_copy[s, rank] == 0:
                         works = False
-                    # else:
-                        # set_tup 
-                # if works:
             if len(set_comb) >= 2 and all(hand_copy[s, rank] == 1 for s in set_comb):
-                #print(f"Works {set_comb}")
                 set_value = sum(self.card_value(rank) for s in set_comb)  # Calculate total value for set
                 value_tups.append((set_value, [nonzeros.index((s * 13) + rank) for s in set_comb])) # Need it to be index in hand of nzs
-
-        #print(f"VTS {value_tups}")
 
         return value_tups
 
@@ -149,18 +143,12 @@ class GameState:
                  1 and hand_suit[(rank + 2) % 13] == 1)
         return between or before or after
 
-    def get_features(self, hand : np.ndarray, other_hand : np.ndarray) -> tuple[int, list[int], int, int, list[int], bool, bool]:
+    def get_features(self, hand : np.ndarray, other_hand : np.ndarray) -> tuple[np.ndarray[int], int, int, np.ndarray]:
         our_hand_value = self.get_hand_value(hand)
-        our_cards = len(hand)
         other_player_num_cards = len(other_hand)
         turn = self.turn
-        last_five = self.cards_played[-5:]
-        top_cards = self.top_cards
-        completes_set = [self.completes_set(
-            hand, card) for card in top_cards]
-        completes_straight = [self.completes_straight(
-            hand, card) for card in top_cards]
-        return our_hand_value, our_cards, other_player_num_cards, turn, last_five, completes_set, completes_straight
+        top_cards = self.get_top_cards()
+        return other_player_num_cards, turn, top_cards
 
     def get_hand_value(self, hand: np.ndarray[int]) -> int:
         sum = (hand.reshape((4, 13)) * np.arange(1, 14)).clip(0, 10).sum()
@@ -202,21 +190,13 @@ class GameState:
         self.discard += self.top_cards
         nzs = np.nonzero(hand)[0]
         h = hand.copy()
-        #print(f"Hand is {self.hand_to_cards(hand)}")
-        #print(f"Hand is {hand}")
-        #print(f"Cards iss: {cards}")
-        #print(f"NZS are {nzs}")
-        #print(f"Hands of nzs is {hand[nzs]}")
+
         counter = 0
         for nz in nzs:
             if counter in cards:
-                #print(f"playing {self.card_to_name(nz)}")
                 hand[nz] -= 1
             counter += 1
 
-        #print(hand)
-        #print(cards)
-        #print(nzs)
         if draw_idx >= 0:
             card_drawn = self.draw(draw_idx)
         else:
@@ -224,14 +204,15 @@ class GameState:
         if len(cards) <= 1:
             self.top_cards = [nzs[cards[0]]]
         else:
-            # print(f"Hand is {self.hand_to_cards(h)}")
-            # print(f"Hand is {h}")
-
-            # print(f"CARDS : {cards}")
-            # print(f"NZEZS : {nzs}")
-            self.top_cards = [nzs[cards[0]], nzs[cards[-1]]]
+            try:
+                self.top_cards = [nzs[cards[0]], nzs[cards[-1]]]
+            except Exception:
+                print(cards)
+                print(cards[0])
+                print(cards[-1])
+                print(nzs)
+                print(hand)
         hand[card_drawn] += 1
-        #print("-----\n\n\n")
         return card_drawn
 
     def playOpponentTurn(self) -> tuple[bool, bool]:
