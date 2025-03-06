@@ -61,6 +61,32 @@ class GameState:
         for card in self.top_cards:
             top[card] += 1
         return top
+    
+    def valid_move(self, cards : list[int]) -> bool:
+        if len(cards) == 1:
+            return True
+        if len(cards) < 3:
+            return cards[0] % 13 == cards[1] % 13
+        rank = cards[0] % 13
+        curr = cards[0]
+        rank_same = True
+        straight = True
+        for card in cards:
+            rank_same = rank_same and (rank == card % 13)
+            straight = straight and (card == curr + 1)
+            curr = card
+        return straight or rank_same
+
+    
+    def valid_moves(self, hand: np.ndarray[int]) -> np.ndarray:
+        nonzeros = np.nonzero(hand)[0]
+        valids = np.zeros(31)
+        for idx, comb in helpers.COMBINATIONS[len(nonzeros)].items():
+            if all(i < len(nonzeros) for i in comb):
+                cards = [nonzeros[i] for i in comb]
+                if self.valid_move(cards):
+                    valids[idx] = 1
+        return valids
 
     def valid_move_values(self, hand: np.ndarray[int]) -> list[tuple[int, list[int]]]:
         valid_moves = []
@@ -186,10 +212,15 @@ class GameState:
         return card
     
     def play(self, hand : np.ndarray[int], cards : list[int], draw_idx : int) -> int:
-        #print("-----\n\n\n")
         self.discard += self.top_cards
         nzs = np.nonzero(hand)[0]
         h = hand.copy()
+
+        print("----")
+        print(cards)
+        print(nzs)
+        print(hand)
+        print("-----")
 
         counter = 0
         for nz in nzs:
