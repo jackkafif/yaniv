@@ -50,8 +50,6 @@ class GameState:
     def hand_to_cards(self, hand: np.ndarray[int]) -> list[str]:
         cards = []
         for card in range(len(hand)):
-            # suit = SUITS[card // 13]
-            # rank = RANKS[card % 13]
             if hand[card] == 1:
                 cards.append(self.card_to_name(card))
         return cards
@@ -92,12 +90,9 @@ class GameState:
         valid_moves = []
         nonzeros = np.nonzero(hand)
         for i in range(len(nonzeros[0])):
-            #print(i)
             valid_moves += [(self.card_value(nonzeros[0][i] % 13), [i])]
-        # print(f"VMS {valid_moves}")
         for idx, i in enumerate(nonzeros[0]):
             valid_moves += self.move_value(hand, i)
-        # print(f"VMS ARE NOW {valid_moves}")
         return valid_moves
 
     def valid_third_moves(self) -> list[str]:
