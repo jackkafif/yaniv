@@ -5,7 +5,7 @@ import os
 
 def play(model : CombinedModel):
     os.system('clear')
-    while input("Would you like to play Yaniv? Y/N: ") == "Y":
+    while True:#input("Would you like to play Yaniv? Y/N: ") == "Y":
         state = GameState()
         win = False
         done = False
@@ -23,6 +23,7 @@ def play(model : CombinedModel):
                         print("You lost!")
                     break
             valid_moves = list(state.valid_moves(state.player_1_hand))
+            print(valid_moves)
             while True:
                 move = input("Input the cards you want to play in their indices 0 1 2 ...: ") 
                 try: 
@@ -54,3 +55,5 @@ def play(model : CombinedModel):
 
             state.play(state.player_2_hand, move, int(draw))
             # print(f"Your hand is now {state.player_2_hand}")
+
+play("")
