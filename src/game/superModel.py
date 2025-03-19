@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class SuperModel:
     def __init__(self, initial_weight_dictionary, learning_rate=0.01, discount_factor=0.90, explore_prob=0.40):
         self.learning_rate = learning_rate
