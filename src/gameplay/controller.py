@@ -1,4 +1,4 @@
-from game.combined_model import CombinedModel, sim_step
+from game.combined_model import CombinedModel
 from game.state import GameState
 import time
 import os
