@@ -101,11 +101,10 @@ class CombinedModel(nn.Module):
         self.optimizer.step()
     
     def features(self, state: GameState, hand: np.ndarray, other_hand: np.ndarray):
-        other_player_num_cards, turn, top_cards = state.get_features(hand, other_hand)
+        basic_features = state.get_features(hand, other_hand)
         # Ensure all arrays are properly flattened and concatenated to match the network input size
         if top_cards.ndim > 1:
             top_cards = top_cards.flatten()
-        basic_features = np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn]])
         
         if basic_features.shape[0] != 106:
             raise ValueError(f"Feature vector size mismatch: Expected 111, got {basic_features.shape[0]}")
