@@ -20,6 +20,11 @@ RANKS_REVERSE = {value : key for key, value in RANKS.items()}
 
 class GameState:
     def __init__(self) -> None:
+        """
+        Initializes Yaniv game state
+
+        Shuffles the deck, deals 5 cards to each of the 2 players, and opens a card at the top of the discard
+        """
         self.deck = np.arange(52)
         np.random.shuffle(self.deck)
         self.player_1_hand = np.zeros(52)
@@ -35,9 +40,18 @@ class GameState:
         self.over = False
 
     def reset(self) -> GameState:
+        """
+        Reshuffles the cards and redeals hands
+        """
         return GameState()
 
     def card_to_name(self, card):
+        """
+        The name of the card in English
+        
+        Args:
+            card ()
+        """
         suit = SUITS[card // 13]
         rank = RANKS[card % 13]
         return f"{rank} of {suit}"
