@@ -23,7 +23,6 @@ def play(model : CombinedModel):
                         print("You lost!")
                     break
             valid_moves = list(state.valid_moves(state.player_1_hand))
-            print(valid_moves)
             while True:
                 move = input("Input the cards you want to play in their indices 0 1 2 ...: ") 
                 try: 
