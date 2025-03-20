@@ -47,7 +47,7 @@ class Play:
         return done, win
 
     def play(self):
-        return
+        # return
         os.system('clear')
         while input("Would you like to play Yaniv? Y/N: ") == "Y":
             state = GameState()
