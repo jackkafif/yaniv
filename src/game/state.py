@@ -174,14 +174,20 @@ class GameState:
         Returns:
             np.ndarry[int] : A list of tuples combinations of playable cards in the hand
         """
-        nonzeros = np.nonzero(hand)[0]
-        valids = np.zeros(31)
-        for idx, comb in helpers.COMBINATIONS[len(nonzeros)].items():
-            if all(i < len(nonzeros) for i in comb):
-                cards = [nonzeros[i] for i in comb]
-                if self.valid_move(cards):
-                    valids[idx] = 1
-        return valids
+        try:
+            nonzeros = np.nonzero(hand)[0]
+            valids = np.zeros(31)
+            if len(nonzeros) == 0:
+                return valids
+            for idx, comb in helpers.COMBINATIONS[len(nonzeros)].items():
+                if all(i < len(nonzeros) for i in comb):
+                    cards = [nonzeros[i] for i in comb]
+                    if self.valid_move(cards):
+                        valids[idx] = 1
+            return valids
+        except:
+            print(hand)
+            raise Exception
     
     def valid_moves(self, hand: np.ndarray[int]) -> list[tuple[int]]:
         """
@@ -261,14 +267,14 @@ class GameState:
         Returns:
             int : The index in the 52 length array where the dealt card should be placed
         """
-        if self.curr_idx == 51:
-            self.deck = np.arange(52)
-            np.random.shuffle(self.deck)
-            self.curr_idx = -1
-        self.discard = []
-        self.top_cards = []
         self.curr_idx += 1
+        if self.curr_idx >= len(self.deck):
+            self.deck = self.discard
+            self.discard = []
+            np.random.shuffle(self.deck)
+            self.curr_idx = 0
         return self.deck[self.curr_idx]
+            
 
     def can_yaniv(self, hand: np.ndarray) -> bool:
         """
@@ -310,13 +316,17 @@ class GameState:
         Returns:
             int : The index of the picked up card in the 52 length array representing a players hand
         """
-        print(self.top_cards, idx)
-        if idx <= len(self.top_cards) - 1:
-            card = self.top_cards[idx]
-        else:
-            card = self.top_cards[0]
-        self.top_cards = []
-        return card
+        # print(self.top_cards, idx)
+        try:
+            if idx <= len(self.top_cards) - 1:
+                card = self.top_cards[idx]
+            else:
+                card = self.top_cards[0]
+            self.top_cards = []
+            return card
+        except:
+            print(self.top_cards, idx)
+            raise Exception
     
     def play(self, hand : np.ndarray[int], cards : list[int]) -> int:
         """
@@ -359,13 +369,16 @@ class GameState:
         else:
             card_drawn = self.draw_card(draw_idx - 1)
 
-        print(nzs, cards)
-        if len(cards) <= 1:
-            self.top_cards = [nzs[cards[0]]]
-        else:
-            self.top_cards = [nzs[cards[0]], nzs[cards[-1]]]
-        hand[card_drawn] += 1
-        return card_drawn
+        # print(nzs, cards)
+        try:
+            if len(cards) <= 1:
+                self.top_cards = [nzs[cards[0]]]
+            else:
+                self.top_cards = [nzs[cards[0]], nzs[cards[-1]]]
+            return card_drawn
+        except:
+            print(self.hand_to_cards(hand), nzs, cards)
+            raise Exception
     
     def completes_move(self, hand : np.ndarray[int], card : int) -> bool: 
         """

@@ -73,14 +73,14 @@ class YanivAgent:
         valid_draws = state.valid_draws()
         valid_draws_mask = np.zeros(3)
         for i in valid_draws:
-            valid_draws_mask[i + 1] = 1
+            valid_draws_mask[i] = 1
         valid_draws_mask[valid_draws_mask < 1] = 0
         if random.random() < self.epsilon:
             return random.choice(valid_draws)
         with torch.no_grad():
             q_vals = self.model_phase3(self.state_to_tensor(state, hand, other).unsqueeze(0))
             q_vals *= valid_draws_mask
-        return int(torch.argmax(q_vals)) - 1  
+        return int(torch.argmax(q_vals))
     
     def train(self):
         if len(self.replay_buffer) < self.batch_size:
@@ -172,6 +172,6 @@ def run_training_episode(agent: YanivAgent, opponent: YanivAgent):
 agent = YanivAgent(12)
 opp = YanivAgent(12)
 
-for i in range(100):
-    x = run_training_episode(agent, opp)
-    print(x)
+# for i in range(100):
+#     x = run_training_episode(agent, opp)
+#     # print(x)
