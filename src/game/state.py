@@ -407,7 +407,7 @@ class GameState:
             draws.append(i + 1)
         return draws
     
-    def playOpponentTurn(self) -> tuple[bool, bool]:
+    def playOpponentTurn(self, hand: np.ndarray, other : np.ndarray) -> tuple[bool, bool]:
         """
         Plays opponents' turns (using self.player_2_hand as opponent hand) based on heuristic
 
@@ -416,11 +416,11 @@ class GameState:
         """
         done = False
         won = False
-        if self.can_yaniv(self.player_2_hand):
-            won = self.yaniv(self.player_2_hand, [self.player_1_hand])
+        if self.can_yaniv(hand):
+            won = self.yaniv(hand, [other])
             done = True
         else:
-            moves = list(self.valid_moves(self.player_2_hand))
+            moves = list(self.valid_moves(hand))
             moves.sort( 
                 key = lambda move : -1 * self.move_value(
                     self.player_2_hand, list(POSSIBLE_MOVES[move])
@@ -429,16 +429,16 @@ class GameState:
             move_i = moves[0]
             drew = False
             for move in self.valid_draws():
-                if move == -1:
+                if move == 0:
                     pass
                 else:
-                    if self.completes_move(self.player_2_hand, self.top_cards[move]):
+                    if self.completes_move(hand, self.top_cards[move - 1]):
                         idx = move
                         drew = True
             if not drew:
                 idx = 0
             play_move = list(POSSIBLE_MOVES[move_i])
-            hand_copy = self.player_2_hand.copy()
-            self.play(self.player_2_hand, play_move)
-            self.draw(hand_copy, play_move, idx)
+            hand_copy = hand.copy()
+            self.play(hand, play_move)
+            hand[self.draw(hand_copy, play_move, idx)] += 1
         return done, won
