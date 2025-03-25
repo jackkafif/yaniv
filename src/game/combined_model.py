@@ -21,7 +21,7 @@ class CombinedModel(nn.Module):
             nn.ReLU(),
             nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Linear(512, 300)  # Assuming 300 different action outputs
+            nn.Linear(512, N_MOVES + 3 + 2)  # Assuming 300 different action outputs
         )
         self.n_moves = N_MOVES
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
@@ -32,70 +32,92 @@ class CombinedModel(nn.Module):
     def forward(self, x):
         return self.network(x)
     
-    def decide_action(self, state : np.ndarray, gameState : GameState, hand : np.ndarray, epsilon): # State should be changed to the feats vector
+    def decompose_action(self, action : np.ndarray, gameState : GameState, hand : np.ndarray):
+
+        valid_moves_mask = gameState.valid_move_indices(hand)
+        valid_moves_mask[valid_moves_mask <= 0] = 0
+
+        valid_draws = gameState.valid_draws()
+        valid_draws_mask = np.zeros(3)
+        for i in valid_draws:
+            valid_draws_mask[i + 1] = 1
+        valid_draws_mask[valid_draws_mask < 1] = 0
+
+        can_yaniv = gameState.can_yaniv(hand)
+        valid_yaniv_mask = np.array([1, 1]) if can_yaniv else np.array([1, 0])
+
+        play_action, draw_action, yaniv_decision = action
+
+        cards_to_play = POSSIBLE_MOVES[int(play_action)]
+
+        return cards_to_play, draw_action, yaniv_decision
+    
+    def decide_action(self, state : np.ndarray, gameState : GameState, hand : np.ndarray, epsilon):
         with torch.no_grad():  # Ensure no gradients are computed for this operation
             output_vector = self.forward(state)
 
-        valid_moves = gameState.valid_moves(hand)
-        # print(gameState.hand_to_cards(hand))
-        # print(valid_moves)
+        valid_moves_mask = gameState.valid_move_indices(hand)
+        valid_moves_mask[valid_moves_mask <= 0] = 0
+
+        valid_draws = gameState.valid_draws()
+        valid_draws_mask = np.zeros(3)
+        for i in valid_draws:
+            valid_draws_mask[i] = 1
+        valid_draws_mask[valid_draws_mask < 1] = 0
+
+        can_yaniv = gameState.can_yaniv(hand)
+        valid_yaniv_mask = np.array([1, 1]) if can_yaniv else np.array([1, 0])
         
         # Splitting the output for different decisions
-        play_decisions = output_vector[:self.n_moves] * valid_moves
-        draw_decisions = output_vector[self.n_moves:self.n_moves + 2]
-        yaniv_decision = output_vector[self.n_moves + 2]
-        # print(torch.argmax(play_decisions).item())
+        play_decisions = output_vector[:self.n_moves] * valid_moves_mask
+        draw_decisions = output_vector[self.n_moves:self.n_moves + 3] * valid_draws_mask
+        yaniv_decision = output_vector[self.n_moves + 3:] * valid_yaniv_mask
         
+        valid_moves = np.where(valid_moves_mask == 1)[0]
         # Decide on play move
         if random.random() < epsilon:
             play_action = random.choice(valid_moves)  # Randomly choose a play
+            draw_action = random.choice(valid_draws)
+            yaniv_decision = 0 if not can_yaniv else np.random.choice([0, 1])
         else:
             play_action = torch.argmax(play_decisions).item()  # Choose the best play based on network output
-        
-        # Decide on draw move
-        if random.random() < epsilon:
-            draw_action = random.choice([0, 1])
-        else:
             draw_action = torch.argmax(draw_decisions).item()
+            yaniv_decision = torch.argmax(yaniv_decision).item()
         
-        # Decide whether to call Yaniv
-        call_yaniv = random.random() < epsilon or torch.sigmoid(yaniv_decision) > 0.5
-
-        # print(play_action, draw_action, call_yaniv)
-        
-        return play_action, draw_action, call_yaniv
+        return (play_action, draw_action, yaniv_decision), output_vector
             
     def store_experience(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
     def replay_experiences(self, batch_size):
         if len(self.memory) < batch_size:
-            return  # Not enough experiences to sample a batch
-        print("Replaying...")        
+            return
+
         batch = random.sample(self.memory, batch_size)
-        states, actions, rewards, next_states, dones = zip(*batch)
+        states, action_vector, rewards, next_states, dones = zip(*batch)
 
         states = torch.stack(states)
         next_states = torch.stack(next_states)
 
-        actions = torch.tensor(actions)
+        # Ensure actions are properly formatted
+        actions = torch.stack([a.clone().detach().long() if isinstance(a, torch.Tensor) else torch.tensor(a, dtype=torch.long) for a in action_vector])
+
         rewards = torch.tensor(rewards, dtype=torch.float32)
         dones = torch.tensor(dones, dtype=torch.float32)
 
-        # Current Q values
-        current_q_values = self.network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        # Fix Q-value extraction
+        current_q_values = self.network(states).gather(1, actions.unsqueeze(1)).squeeze(1)  # Ensure shape (32,)
 
-        # Next Q values
         next_q_values = self.network(next_states).max(1)[0]
-        next_q_values[dones] = 0.0  # Zero out the next Q values where the episode has ended
+        next_q_values[dones.bool()] = 0.0  # Set next state Q-value to 0 for terminal states
 
-        # Expected Q values
-        expected_q_values = rewards + self.gamma * next_q_values
+        expected_q_values = rewards + self.gamma * next_q_values  # Shape (32,)
 
-        # Compute loss
-        loss = self.loss_function(current_q_values, expected_q_values)
+        # Ensure both tensors have the same shape
+        assert current_q_values.shape == expected_q_values.shape, f"Shape mismatch: {current_q_values.shape} vs {expected_q_values.shape}"
 
-        # Backpropagation
+        loss = self.loss_function(current_q_values, expected_q_values.detach())
+
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -103,31 +125,29 @@ class CombinedModel(nn.Module):
     def features(self, state: GameState, hand: np.ndarray, other_hand: np.ndarray):
         basic_features = state.get_features(hand, other_hand)
         # Ensure all arrays are properly flattened and concatenated to match the network input size
-        if top_cards.ndim > 1:
-            top_cards = top_cards.flatten()
+        if basic_features.ndim > 1:
+            basic_features = basic_features.flatten()
         
         if basic_features.shape[0] != 106:
             raise ValueError(f"Feature vector size mismatch: Expected 111, got {basic_features.shape[0]}")
         
         return torch.FloatTensor(basic_features)
     
-def play_step(hand : np.ndarry, other_hands : list[np.ndarray], state: GameState, actions: tuple[str, list[int], str]) -> tuple[GameState, int, bool, bool]:
-    # print(actions)
-    selected_play, draw_action, call_yaniv = actions
+def play_step(hand : np.ndarry, other_hands : list[np.ndarray], state: GameState, actions: tuple[list[int], int, int]) -> tuple[GameState, int, bool, bool]:
+    cards_to_play, draw_action, yaniv = actions
     done = False
     win = False
-    if call_yaniv == "Yaniv":
+    if yaniv:
         done = True
         win = state.yaniv(hand, other_hands)
         reward1 = 10 if win else -50
     else:
         reward1 = 1
-    # Deck == 0 Discard == 1
     draw = draw_action
     initial_hand = state.get_hand_value(hand)
-    state.play(hand, COMBINATIONS[5][selected_play], draw)
+    cards_to_play = POSSIBLE_MOVES[int(cards_to_play)]
+    state.play(hand, cards_to_play, draw)
     delta_hand = initial_hand - state.get_hand_value(hand)
-    # print(delta_hand)
     if delta_hand < 0:
         reward3 = 1
     else:
@@ -156,13 +176,13 @@ def train_agent(agent : CombinedModel, agent2 : CombinedModel, game_env : GameSt
                     other = [game_env.player_1_hand]
 
                 state_vector = ag.features(current_state, hand, other)
-                actions = ag.decide_action(state_vector, current_state, hand, epsilon)
-                # print(actions)
+                actions, output_vector = ag.decide_action(state_vector, current_state, hand, epsilon)
+
                 next_state, reward, done, _ = play_step(hand, other, game_env, actions)
                 next_state_vector = ag.features(next_state, other[0], [hand])
 
-                print(state_vector, actions, reward, next_state_vector, done)
-                ag.store_experience(state_vector, actions, reward, next_state_vector, done)
+
+                ag.store_experience(state_vector, output_vector, reward, next_state_vector, done)
                 ag.replay_experiences(batch_size)
 
                 current_state = next_state

@@ -3,8 +3,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from game_state import GameState
+from game.state import GameState
+from helpers import *
 
+POSSIBLE_MOVES = generate_combinations(5)
+N_MOVES = len(POSSIBLE_MOVES)
+STATE_SIZE = 106 # 52 for player hand, 
 
 class DQN(nn.Module):
     def __init__(self, state_size: int, action_size: int):
@@ -18,9 +22,8 @@ class DQN(nn.Module):
         x = F.relu(self.fc2(x))
         return self.fc3(x)
 
-
 class Agent:
-    def __init__(self, state_size: int, action_size: int, epsilon: float = 1.0):
+    def __init__(self, state_size: int, action_size: int = N_MOVES, epsilon: float = 1.0):
         self.state_size = state_size
         self.action_size = action_size
         self.epsilon = epsilon

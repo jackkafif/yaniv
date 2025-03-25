@@ -164,6 +164,25 @@ class GameState:
             curr = card
         return straight or rank_same
     
+    def valid_move_indices(self, hand: np.ndarray[int]) -> np.ndarray[int]:
+        """
+        The valid playable moves from hand in vector form
+
+        Args:
+            cards (np.ndarray[int]) : The one hot array of cards representing the hand
+
+        Returns:
+            np.ndarry[int] : A list of tuples combinations of playable cards in the hand
+        """
+        nonzeros = np.nonzero(hand)[0]
+        valids = np.zeros(31)
+        for idx, comb in helpers.COMBINATIONS[len(nonzeros)].items():
+            if all(i < len(nonzeros) for i in comb):
+                cards = [nonzeros[i] for i in comb]
+                if self.valid_move(cards):
+                    valids[idx] = 1
+        return valids
+    
     def valid_moves(self, hand: np.ndarray[int]) -> list[tuple[int]]:
         """
         The valid playable moves from hand
@@ -174,13 +193,7 @@ class GameState:
         Returns:
             list[tuple[int]] : A list of tuples combinations of playable cards in the hand
         """
-        nonzeros = np.nonzero(hand)[0]
-        valids = np.zeros(31)
-        for idx, comb in helpers.COMBINATIONS[len(nonzeros)].items():
-            if all(i < len(nonzeros) for i in comb):
-                cards = [nonzeros[i] for i in comb]
-                if self.valid_move(cards):
-                    valids[idx] = 1
+        valids = self.valid_move_indices(hand)
         return np.where(valids == 1)[0]
     
     def card_value(self, idx : int):
@@ -326,22 +339,15 @@ class GameState:
                 hand[nz] -= 1
             counter += 1
 
-        if draw_idx >= 0:
-            card_drawn = self.draw(draw_idx)
-        else:
+        if draw_idx == 0:
             card_drawn = self.deal()
+        else:
+            card_drawn = self.draw(draw_idx - 1)
+
         if len(cards) <= 1:
             self.top_cards = [nzs[cards[0]]]
         else:
-            # try:
             self.top_cards = [nzs[cards[0]], nzs[cards[-1]]]
-            # except Exception:
-            #     pass
-            #     print(cards)
-            #     print(cards[0])
-            #     print(cards[-1])
-            #     print(nzs)
-            #     print(hand)
         hand[card_drawn] += 1
         return card_drawn
     
@@ -367,9 +373,9 @@ class GameState:
         Returns: 
             list[int] : Valid draw indices for (-1 for deck, 0 for first index of discard, 1 for second index of discard)
         """
-        draws = [-1]
-        for i in range(len(self.discard)):
-            draws.append(i)
+        draws = [0]
+        for i in range(len(self.top_cards)):
+            draws.append(i + 1)
         return draws
     
     def playOpponentTurn(self) -> tuple[bool, bool]:
