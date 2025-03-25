@@ -1,88 +1,177 @@
-# agent.py
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.optim as optim
 import numpy as np
-from game.state import GameState
+import random
 from helpers import *
+from collections import deque
+from state import GameState
 
 POSSIBLE_MOVES = generate_combinations(5)
-N_MOVES = len(POSSIBLE_MOVES)
-STATE_SIZE = 106 # 52 for player hand, 
+
+PHASE1_ACTION_SIZE = 2  # 0 = Play, 1 = Call Yaniv
+PHASE2_ACTION_SIZE = len(POSSIBLE_MOVES)
+PHASE3_ACTION_SIZE = 3  # 0 = Draw from deck, 1 = Draw first from discard, 2 = Draw second from dicard
 
 class DQN(nn.Module):
-    def __init__(self, state_size: int, action_size: int):
-        super(DQN, self).__init__()
-        self.fc1 = nn.Linear(state_size, 128)
+    def __init__(self, input_size, output_size):
+        super().__init__()
+        self.fc1 = nn.Linear(input_size, 128)
         self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, action_size)
-    
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return self.fc3(x)
+        self.out = nn.Linear(128, output_size)
 
-class Agent:
-    def __init__(self, state_size: int, action_size: int = N_MOVES, epsilon: float = 1.0):
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        return self.out(x)
+
+class YanivAgent:
+    def __init__(self, state_size):
         self.state_size = state_size
-        self.action_size = action_size
-        self.epsilon = epsilon
+
+        self.model_phase1 = DQN(state_size, PHASE1_ACTION_SIZE)
+        self.model_phase2 = DQN(state_size, PHASE2_ACTION_SIZE)
+        self.model_phase3 = DQN(state_size, PHASE3_ACTION_SIZE)
+
+        self.optimizer_phase1 = optim.Adam(self.model_phase1.parameters(), lr=1e-3)
+        self.optimizer_phase2 = optim.Adam(self.model_phase2.parameters(), lr=1e-3)
+        self.optimizer_phase3 = optim.Adam(self.model_phase3.parameters(), lr=1e-3)
+
+        self.loss_fn = nn.MSELoss()
+        self.epsilon = 1.0
         self.epsilon_min = 0.1
         self.epsilon_decay = 0.995
         self.gamma = 0.99
-        self.model = DQN(state_size, action_size)
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
-        self.loss_fn = nn.MSELoss()
+        self.replay_buffer = deque(maxlen=10000)
+        self.batch_size = 32
+
+    def state_to_tensor(self, state : GameState, hand : np.ndarray, other : np.ndarray):
+        return torch.FloatTensor(state.get_features(hand, other))
+
+    def choose_action_phase1(self, state : GameState, hand : np.ndarray, other : np.ndarray):
+        if not state.can_yaniv(hand):
+            return 0
+        if random.random() < self.epsilon:
+            return random.randint(0, 1)
+        with torch.no_grad():
+            q_vals = self.model_phase1(self.state_to_tensor(state, hand, other).unsqueeze(0))
+        return int(torch.argmax(q_vals))
+
+    # Phase 2: Choose which cards to play
+    def choose_action_phase2(self, state : GameState, hand : np.ndarray, other : np.ndarray):
+        valid_moves = state.valid_move_indices(hand)
+        valid_moves[valid_moves <= 0] = 0
+        if random.random() < self.epsilon:
+            return random.choice(valid_moves)
+        with torch.no_grad():
+            q_vals = self.model_phase2(self.state_to_tensor(state, hand, other).unsqueeze(0))
+            q_vals *= valid_moves
+        return int(torch.argmax(q_vals))
+
+    # Phase 3: Choose where to draw from
+    def choose_action_phase3(self, state : GameState, hand : np.ndarray, other : np.ndarray):
+        valid_draws = state.valid_draws()
+        valid_draws_mask = np.zeros(3)
+        for i in valid_draws:
+            valid_draws_mask[i + 1] = 1
+        valid_draws_mask[valid_draws_mask < 1] = 0
+        if random.random() < self.epsilon:
+            return random.choice(valid_draws)
+        with torch.no_grad():
+            q_vals = self.model_phase3(self.state_to_tensor(state, hand, other).unsqueeze(0))
+            q_vals *= valid_draws_mask
+        return int(torch.argmax(q_vals)) - 1  
     
-    def choose_action(self, state: np.ndarray, valid_actions: list[int]) -> int:
-        """
-        Epsilon-greedy policy: with probability epsilon, choose a random valid action.
-        Otherwise, use the network to pick the action with the highest Q-value among valid actions.
-        """
-        if np.random.rand() < self.epsilon:
-            return np.random.choice(valid_actions)
-        state_tensor = torch.FloatTensor(state).unsqueeze(0)
-        q_values = self.model(state_tensor).detach().numpy().flatten()
-        # Filter valid actions: set invalid ones to a very low value.
-        q_values_filtered = np.full_like(q_values, -1e9)
-        for a in valid_actions:
-            q_values_filtered[a] = q_values[a]
-        return int(np.argmax(q_values_filtered))
+    def train(self):
+        if len(self.replay_buffer) < self.batch_size:
+            return
+        batch = random.sample(self.replay_buffer, self.batch_size)
+        for phase in [1, 2, 3]:
+            phase_batch = [exp for exp in batch if exp['phase'] == phase]
+            if not phase_batch:
+                continue
+            states = torch.stack([exp['state'] for exp in phase_batch])
+            actions = torch.LongTensor([exp['action'] for exp in phase_batch]).unsqueeze(1)
+            rewards = torch.FloatTensor([exp['reward'] for exp in phase_batch])
+            next_states = torch.stack([exp['next_state'] for exp in phase_batch])
+            dones = torch.FloatTensor([exp['done'] for exp in phase_batch])
 
-    def train_step(self, batch):
-        states, actions, rewards, next_states, dones = batch
-        states_tensor = torch.FloatTensor(states)
-        next_states_tensor = torch.FloatTensor(next_states)
-        rewards_tensor = torch.FloatTensor(rewards)
-        dones_tensor = torch.FloatTensor(dones)
+            if phase == 1:
+                model = self.model_phase1
+                optimizer = self.optimizer_phase1
+            elif phase == 2:
+                model = self.model_phase2
+                optimizer = self.optimizer_phase2
+            else:
+                model = self.model_phase3
+                optimizer = self.optimizer_phase3
 
-        q_values = self.model(states_tensor)
-        next_q_values = self.model(next_states_tensor).detach()
-        target_q = rewards_tensor + self.gamma * (1 - dones_tensor) * torch.max(next_q_values, dim=1)[0]
-        q_value_taken = q_values.gather(1, torch.LongTensor(actions).unsqueeze(1)).squeeze(1)
-        loss = self.loss_fn(q_value_taken, target_q)
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+            q_values = model(states).gather(1, actions).squeeze()
+            next_q_values = model(next_states).max(1)[0].detach()
+            target = rewards + self.gamma * (1 - dones) * next_q_values
+
+            loss = self.loss_fn(q_values, target)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-    def action_to_move(self, action: int) -> tuple[list[int], int]:
-        """
-        Convert an action index into a game move.
-        This is a placeholder mapping; design a proper mapping for your action space.
-        For demonstration: if the action is even, discard one card at (action // 2) and draw from deck (-1);
-        if odd, discard one card at (action // 2) and draw from the top (0).
-        """
-        if action % 2 == 0:
-            return ([action // 2], -1)
-        else:
-            return ([action // 2], 0)
-    
-    def valid_actions(self, game_state: GameState) -> list[int]:
-        """
-        Return a list of valid action indices given the current game state.
-        For demonstration purposes, we assume all actions from 0 to action_size - 1 are valid.
-        """
-        return list(range(self.action_size))
+    def store_experience(self, phase, state, action, reward, next_state, done):
+        self.replay_buffer.append({
+            'phase': phase,
+            'state': state,
+            'action': action,
+            'reward': reward,
+            'next_state': next_state,
+            'done': done
+        })
+
+def run_training_episode(agent: YanivAgent, opponent: YanivAgent):
+    game = GameState()
+    done = False
+
+    # Phase 1: Call Yaniv or Play
+    state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
+    action1 = agent.choose_action_phase1(game, game.player_1_hand, game.player_2_hand)
+    if action1 == 1:  # Call Yaniv
+        reward = 100 if game.yaniv(game.player_1_hand, [game.player_2_hand]) else -50
+        next_state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
+        agent.store_experience(1, state_tensor, action1, reward, next_state_tensor, True)
+        return reward
+    else:
+        reward = 0
+        next_state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
+        agent.store_experience(1, state_tensor, action1, reward, next_state_tensor, False)
+
+    # Phase 2: Play cards
+    state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
+    action2 = agent.choose_action_phase2(game, game.player_1_hand, game.player_2_hand)
+    discard_indices = POSSIBLE_MOVES[int(action2)]
+    hand_copy = game.player_1_hand.copy()
+    game.play(game.player_1_hand, discard_indices)
+    reward = -game.get_hand_value(game.player_1_hand)  # shaping
+    next_state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
+    agent.store_experience(2, state_tensor, action2, reward, next_state_tensor, False)
+
+    # Phase 3: Draw card
+    state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
+    action3 = agent.choose_action_phase3(game, game.player_1_hand, game.player_2_hand)
+    game.draw(hand_copy, discard_indices, action3) 
+    next_state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
+    reward = 0
+    agent.store_experience(3, state_tensor, action3, reward, next_state_tensor, False)
+
+    # Opponent plays
+    done, opponent_won = game.playOpponentTurn()
+    if done and opponent_won:
+        return -50
+    return 0
+
+agent = YanivAgent(12)
+opp = YanivAgent(12)
+
+for i in range(100):
+    x = run_training_episode(agent, opp)
+    print(x)

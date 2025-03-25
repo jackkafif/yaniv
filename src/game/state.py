@@ -300,7 +300,7 @@ class GameState:
                 return False
         return True
 
-    def draw(self, idx: int) -> int:
+    def draw_card(self, idx: int) -> int:
         """
         Draws card with index {idx} from the discard
 
@@ -310,6 +310,7 @@ class GameState:
         Returns:
             int : The index of the picked up card in the 52 length array representing a players hand
         """
+        print(self.top_cards, idx)
         if idx <= len(self.top_cards) - 1:
             card = self.top_cards[idx]
         else:
@@ -317,7 +318,7 @@ class GameState:
         self.top_cards = []
         return card
     
-    def play(self, hand : np.ndarray[int], cards : list[int], draw_idx : int) -> int:
+    def play(self, hand : np.ndarray[int], cards : list[int]) -> int:
         """
         Plays the cards in {cards} from {hand} and draws {draw_idx} card from discard or deck
 
@@ -331,7 +332,6 @@ class GameState:
         """
         self.discard += self.top_cards
         nzs = np.nonzero(hand)[0]
-        h = hand.copy()
 
         counter = 0
         for nz in nzs:
@@ -339,11 +339,27 @@ class GameState:
                 hand[nz] -= 1
             counter += 1
 
+        return
+    
+    def draw(self, hand : np.ndarray[int], cards : list[int], draw_idx : int) -> int:
+        """
+        Draws {draw_idx} card from discard or deck and places {cards} on top of discard pile
+
+        Params:
+            hand (np.ndarray[int]) : The one hot array of cards representing the player's hand before playing
+            cards (list[int]) : A list of indices in hand of the cards to play
+            draw_idx (int) : -1 if drawing from deck, 0 if drawing first card from discard, 1 if drawing second card from dicard
+
+        Returns:
+            int : The card draw after playing {cards} from player's {hand}
+        """
+        nzs = np.nonzero(hand)[0]
         if draw_idx == 0:
             card_drawn = self.deal()
         else:
-            card_drawn = self.draw(draw_idx - 1)
+            card_drawn = self.draw_card(draw_idx - 1)
 
+        print(nzs, cards)
         if len(cards) <= 1:
             self.top_cards = [nzs[cards[0]]]
         else:
@@ -374,7 +390,7 @@ class GameState:
             list[int] : Valid draw indices for (-1 for deck, 0 for first index of discard, 1 for second index of discard)
         """
         draws = [0]
-        for i in range(len(self.top_cards)):
+        for i in range(1, len(self.top_cards)):
             draws.append(i + 1)
         return draws
     
@@ -403,10 +419,13 @@ class GameState:
                 if move == -1:
                     pass
                 else:
-                    if self.completes_set(self.player_2_hand, self.top_cards[move]):
+                    if self.completes_move(self.player_2_hand, self.top_cards[move]):
                         idx = move
                         drew = True
             if not drew:
-                idx = -1
-            self.play(self.player_2_hand, list(POSSIBLE_MOVES[move_i]), idx)
+                idx = 0
+            play_move = list(POSSIBLE_MOVES[move_i])
+            hand_copy = self.player_2_hand.copy()
+            self.play(self.player_2_hand, play_move)
+            self.draw(hand_copy, play_move, idx)
         return done, won
