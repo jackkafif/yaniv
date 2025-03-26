@@ -5,10 +5,18 @@ import time
 import os
 from game.helpers import *
 POSSIBLE_MOVES = generate_combinations(5)
-
+from game.train import train_models, play_agent
 
 def play(model: CombinedModel, visual=False):
+    w1, w2, m1, m2 = train_models(0)
     os.system('clear')
+    if w1 > w2:
+        m = m1
+        print(w1)
+    else:
+        m = m2
+        print(m2)
+    m.epsilon = 0
     play = True
     while play:  # input("Would you like to play Yaniv? Y/N: ") == "Y":
         state = GameState()
@@ -72,8 +80,7 @@ def play(model: CombinedModel, visual=False):
 
             # state.play(state.player_2_hand, move)
             # state.draw(cp2, move, int(draw))
-            done, won = state.playOpponentTurn(
-                state.player_2_hand, state.player_1_hand)
+            done, won = play_agent(state, m, state.player_2_hand, state.player_1_hand)
             if done:
                 print("Your opponent called Yaniv! " +
                       "They have " + str(int(state.get_hand_value(state.player_2_hand))) +

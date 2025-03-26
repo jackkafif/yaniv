@@ -1,26 +1,47 @@
 # train_yaniv_agent.py
 
 import torch
-from agent import YanivAgent
-from state import GameState
-from helpers import *
+from game.agent import YanivAgent
+from game.state import GameState
+from game.helpers import *
 import numpy as np
-
-STATE_SIZE = 106  # 52 (hand) + 52 (top cards) + 1 (opp hand size) + 1 (turn)
-NUM_EPISODES = 10000
-SAVE_EVERY = 500
-MODEL_DIR = "checkpoints"
-POSSIBLE_MOVES = generate_combinations(5)
-
 import os
 import random
-if not os.path.exists(MODEL_DIR):
-    os.makedirs(MODEL_DIR)
 
-agent1 = YanivAgent(state_size=STATE_SIZE)
-agent2 = YanivAgent(state_size=STATE_SIZE)
+STATE_SIZE = 106  # 52 (hand) + 52 (top cards) + 1 (opp hand size) + 1 (turn)
+SAVE_EVERY = 50
+MODEL_DIR = "src/agent/checkpoints"
+POSSIBLE_MOVES = generate_combinations(5)
 
-def play_turn(p1 : YanivAgent, p2 : YanivAgent, hand : np.ndarray, other : np.ndarray, debug=False):
+def play_agent(game : GameState, p1 : YanivAgent, hand : np.ndarray, other : np.ndarray) -> tuple[bool, bool]:
+    s1 = p1.state_to_tensor(game, hand, other)
+    a1 = p1.choose_action_phase1(game, hand, other)
+    if a1 == 1:
+        won = game.yaniv(hand, [other])
+        return True, won
+
+    s2 = p1.state_to_tensor(game, hand, other)
+    a2 = p1.choose_action_phase2(game, hand, other)
+    discard_indices = POSSIBLE_MOVES[int(a2)]
+
+    if len(discard_indices) == 0:
+        # must call Yaniv
+        won = game.yaniv(hand, [other])
+        return True, won
+    
+    h_c = hand.copy()
+    game.play(hand, list(discard_indices))
+    r2_play = -game.get_hand_value(hand)
+    s2_next = p1.state_to_tensor(game, hand, other)
+
+    # Phase 3: Draw card
+    s3 = p1.state_to_tensor(game, hand, other)
+    a3 = p1.choose_action_phase3(game, hand, other)
+    hand[game.draw(h_c, list(discard_indices), a3)] += 1
+
+    return False, False
+
+def play_turn(game : GameState, p1 : YanivAgent, p2 : YanivAgent, hand : np.ndarray, other : np.ndarray, debug=False):
     # Phase 1: Decide to call Yaniv or play (Player 1)
     reward1, reward2 = 0, 0
     s1 = p1.state_to_tensor(game, hand, other)
@@ -56,7 +77,7 @@ def play_turn(p1 : YanivAgent, p2 : YanivAgent, hand : np.ndarray, other : np.nd
         return reward1, reward2, True, won
 
     if debug:
-        print(game.hand_to_cards(hand), discard_indices)
+        print(game.hand_to_cards(hand), discard_indices, [POSSIBLE_MOVES[move] for move in game.valid_moves(hand)])
 
     h_c = hand.copy()
     game.play(hand, list(discard_indices))
@@ -75,31 +96,55 @@ def play_turn(p1 : YanivAgent, p2 : YanivAgent, hand : np.ndarray, other : np.nd
 
     s3_next = p1.state_to_tensor(game, hand, other)
     p1.store_experience(3, s3, a3, 0, s3_next, False)
-    return reward1, reward2, False, False
+    return reward1, reward2, False, False    
 
-# Updated training loop for self-play
-for episode in range(1, NUM_EPISODES + 1):
-    game = GameState()
-    done = False
-    reward1 = 0
-    reward2 = 0
+def train_models(NUM_EPISODES = 1000) -> tuple[int, int, YanivAgent, YanivAgent]:
 
-    p1, p2 = agent1, agent2
+    if not os.path.exists(MODEL_DIR):
+        os.makedirs(MODEL_DIR)
 
-    print(f"Episode {episode}")
-    
-    while not done:
-        r1a, r2a, done, won = play_turn(p1, p2, game.player_1_hand, game.player_2_hand, True)
-        if done:
-            print("Player 1 won")
-            break
-        r1b, r2b, done, won = play_turn(p2, p1, game.player_2_hand, game.player_1_hand)
-        if done:
-            print("Player 2 won")
-            break
-        agent1.train()
-        agent2.train()
+    agent1 = YanivAgent(state_size=STATE_SIZE)
+    agent2 = YanivAgent(state_size=STATE_SIZE)
 
-    print(game.hand_to_cards(game.player_1_hand), game.hand_to_cards(game.player_2_hand))
+    for i, agent in enumerate([agent1, agent2], start=1):
+        try:
+            agent.model_phase1.load_state_dict(torch.load(f"{MODEL_DIR}/agent{i}_phase1.pt"))
+            agent.model_phase2.load_state_dict(torch.load(f"{MODEL_DIR}/agent{i}_phase2.pt"))
+            agent.model_phase3.load_state_dict(torch.load(f"{MODEL_DIR}/agent{i}_phase3.pt"))
+            print(f"Loaded model checkpoints for Agent {i}.")
+        except:
+            print(f"No checkpoints found for Agent {i}. Training from scratch.")
 
-    print(f"Episode {episode}, Agent1 Reward: {reward1}, Agent2 Reward: {reward2}")
+    # Updated training loop for self-play
+    w1 = 0
+    w2 = 0
+    for episode in range(1, NUM_EPISODES + 1):
+        game = GameState()
+        done = False
+
+        p1, p2 = agent1, agent2
+        
+        while not done:
+            r1a, r2a, done, won = play_turn(game, p1, p2, game.player_1_hand, game.player_2_hand)
+            if done:
+                w1 += 1
+                break
+            r1b, r2b, done, won = play_turn(game, p2, p1, game.player_2_hand, game.player_1_hand)
+            if done:
+                w2 += 1
+                break
+            agent1.train()
+            agent2.train()
+
+        if episode % SAVE_EVERY == 0:
+            for i, agent in enumerate([agent1, agent2], start=1):
+                torch.save(agent.model_phase1.state_dict(), f"{MODEL_DIR}/agent{i}_phase1.pt")
+                torch.save(agent.model_phase2.state_dict(), f"{MODEL_DIR}/agent{i}_phase2.pt")
+                torch.save(agent.model_phase3.state_dict(), f"{MODEL_DIR}/agent{i}_phase3.pt")
+            print(f"Checkpoint saved at episode {episode}")
+
+    return w1, w2, agent1, agent2
+
+if __name__ == "__main__":
+    w1, w2, _, _ = train_models(1000)
+    print(f"Agent 1 won {w1} to 2's {w2}")

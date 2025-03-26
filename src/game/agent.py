@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import random
-from helpers import *
+from game.helpers import *
 from collections import deque
-from state import GameState
+from game.state import GameState
 
 POSSIBLE_MOVES = generate_combinations(5)
 
@@ -60,12 +60,12 @@ class YanivAgent:
     # Phase 2: Choose which cards to play
     def choose_action_phase2(self, state : GameState, hand : np.ndarray, other : np.ndarray):
         valid_moves = state.valid_move_indices(hand)
-        valid_moves[valid_moves <= 0] = 0
         if random.random() < self.epsilon:
-            return random.choice(valid_moves)
+            return random.choice(np.where(valid_moves > 0)[0])
         with torch.no_grad():
             q_vals = self.model_phase2(self.state_to_tensor(state, hand, other).unsqueeze(0))
-            q_vals *= valid_moves
+            q_vals = q_vals.squeeze(0)
+            q_vals[valid_moves.T <= 0] = -np.inf
         return int(torch.argmax(q_vals))
 
     # Phase 3: Choose where to draw from
@@ -74,12 +74,12 @@ class YanivAgent:
         valid_draws_mask = np.zeros(3)
         for i in valid_draws:
             valid_draws_mask[i] = 1
-        valid_draws_mask[valid_draws_mask < 1] = 0
         if random.random() < self.epsilon:
             return random.choice(valid_draws)
         with torch.no_grad():
             q_vals = self.model_phase3(self.state_to_tensor(state, hand, other).unsqueeze(0))
-            q_vals *= valid_draws_mask
+            q_vals = q_vals.squeeze(0)
+            q_vals[valid_draws_mask < 1] = -np.inf
         return int(torch.argmax(q_vals))
     
     def train(self):

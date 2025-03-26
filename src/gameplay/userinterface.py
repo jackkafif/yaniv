@@ -57,10 +57,11 @@ def display_hand(hand, show=True):
         print(print_string)
 
 
-hand1 = np.zeros(52)
-hand1[0] = 1
-hand1[19] = 1
-hand1[38] = 1
-hand1[42] = 1
+if __name__ == "__main__":
+    hand1 = np.zeros(52)
+    hand1[0] = 1
+    hand1[19] = 1
+    hand1[38] = 1
+    hand1[42] = 1
 
-display_hand(hand1)
+    display_hand(hand1)
