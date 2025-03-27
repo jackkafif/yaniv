@@ -7,6 +7,22 @@ PHASE1_ACTION_SIZE = 2  # 0 = Play, 1 = Call Yaniv
 PHASE2_ACTION_SIZE = len(POSSIBLE_MOVES)
 PHASE3_ACTION_SIZE = 3  # 0 = Draw from deck, 1 = Draw first from discard, 2 = Draw second from dicard
 
-STATE_SIZE = 106 + 32  # 52 (hand) + 52 (top cards) + 1 (opp hand size) + 1 (turn)
+STATE_SIZE = 106 + 32 + 2  # 52 (hand) + 52 (top cards) + 1 (opp hand size) + 1 (turn)
 SAVE_EVERY = 50
 MODEL_DIR = "src/agent/checkpoints"
+
+SUITS = {
+    0 : "Clubs",
+    1 : "Spades",
+    2 : "Hearts",
+    3 : "Diamonds"
+}
+
+RANKS = {
+    0 : "Ace", 1 : "Two", 2 : "Three", 3 : "Four",
+    4 : "Five", 5 : "Six", 6 : "Seven", 7 : "Eight", 8 : "Nine",
+    9 : "Ten", 10 : "Jack", 11 : "Queen", 12 : "King"
+}
+
+SUITS_REVERSE = {value : key for key, value in SUITS.items()}
+RANKS_REVERSE = {value : key for key, value in RANKS.items()}

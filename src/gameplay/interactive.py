@@ -3,9 +3,9 @@ from game.state import GameState
 from gameplay.userinterface import display_hand
 import time
 import os
-from game.helpers import *
-POSSIBLE_MOVES = generate_combinations(5)
-
+from game.globals import *
+from game.train import train_models, play_agent
+import numpy as np
 
 def play(visual=False):
     w1, w2, m1, m2 = train_models(0)
@@ -20,6 +20,12 @@ def play(visual=False):
     play = True
     while play:  # input("Would you like to play Yaniv? Y/N: ") == "Y":
         state = GameState()
+        state.player_1_hand = np.zeros(52)
+        state.player_1_hand[state.name_to_card("Ace of Clubs")] = 1
+        state.player_1_hand[state.name_to_card("Two of Clubs")] = 1
+        state.player_1_hand[state.name_to_card("Three of Clubs")] = 1
+        state.player_1_hand[state.name_to_card("Queen of Diamonds")] = 1
+        state.player_1_hand[state.name_to_card("King of Diamonds")] = 1
         win = False
         done = False
         print("Dealing Cards...")

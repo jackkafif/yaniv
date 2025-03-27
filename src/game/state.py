@@ -142,8 +142,13 @@ class GameState:
         """
         Whether playing the cards in cards is a valid move
 
+        Valid moves are:
+        1. Straights: Three consecutive cards of the same suit
+        2. Sets: 2 or more cards of the same rank
+        3. Single card
+
         Args:
-            cards (np.ndarray[int]) : The one hot array of cards representing the hand
+            cards (np.ndarray[int]) : The one hot array of cards representing the hand, Example: [4, 5, 6] = ["3 of Spades", "4 of Spades", "5 of Spades"]
 
         Returns:
             bool : Whether or not the move playing the cards in cards is valid
@@ -156,15 +161,34 @@ class GameState:
         curr = cards[0]
         rank_same = True
         straight = True
+        
+        # Checking for straight (Need to check special cases of Ace, Two, Queen, King)
+        for card in cards[1:]:  
+            if curr % 13 == 0:
+                straight = straight and (card % 13 == 1)
+            elif curr % 13 == 1:
+                straight = straight and (card % 13 == 2)
+            elif curr % 13 == 11:
+                straight = straight and (card % 13 == 12)
+            elif curr % 13 == 12:
+                straight = straight and (card % 13 == 0)
+            else:
+                straight = straight and (card % 13 == curr % 13 + 1)
+            curr = card
+
         for card in cards[1:]:
             rank_same = rank_same and (rank == card % 13)
-            straight = straight and (card == curr + 1)
             curr = card
+        
         return straight or rank_same
 
     def valid_move_indices(self, hand: np.ndarray[int]) -> np.ndarray[int]:
         """
         The valid playable moves from hand in vector form
+
+        Straights are Three consecutive cards of the same suit
+        Sets are 2 or more cards of the same rank
+
 
         Args:
             cards (np.ndarray[int]) : The one hot array of cards representing the hand
@@ -177,6 +201,7 @@ class GameState:
             valids = np.zeros(31)
             if len(nonzeros) == 0:
                 return valids
+            for idx, comb in COMBINATIONS[len(nonzeros)].items():
             for idx, comb in COMBINATIONS[len(nonzeros)].items():
                 if all(i < len(nonzeros) for i in comb):
                     cards = [nonzeros[i] for i in comb]
@@ -245,6 +270,13 @@ class GameState:
         top_cards = self.get_top_cards()
         valid_moves = self.valid_moves(hand)
         vals = self.get_moves_values(hand, valid_moves).flatten()
+        top_1_completes, move_value = self.completes_move(hand, self.top_cards[0])
+        if len(self.top_cards) == 1:
+            return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals, [top_1_completes, 0]])
+        top_2_completes, move_value = self.completes_move(hand, self.top_cards[1])
+        return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals, [top_1_completes, top_2_completes]])
+    
+    def get_moves_values(self, hand : np.ndarray[int], moves : list[int]) -> np.ndarray[int]:
         return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals])
 
     def get_moves_values(self, hand: np.ndarray[int], moves: list[int]) -> np.ndarray[int]:
@@ -377,7 +409,6 @@ class GameState:
         else:
             card_drawn = self.draw_card(draw_idx - 1)
 
-        # print(nzs, cards)
         try:
             if len(cards) <= 1:
                 self.top_cards = [nzs[cards[0]]]
@@ -390,21 +421,84 @@ class GameState:
 
     def completes_move(self, hand: np.ndarray[int], card: int) -> tuple[bool, int]:
         """
-        Whether card of index {card} completes a set or a straight and the value of said move
+        Whether card of index {card} completes a set or a straight and the maximum value of said move
+
+        Straights are Three consecutive cards of the same suit
+        Sets are 2 or more cards of the same rank
+
+        Value of the move is the value of the cards in the move
 
         Params:
-            hand (np.ndarray[int]) : The one hot array of cards representing the player's hand
+            hand (np.ndarray[int]) : The one hot array of cards representing the player's hand (length 52)
             card (int] : index in hand of the cards
 
         Returns:
-            bool : Whether card of index {card} completes a set or a straight
+            tuple[bool, int] : Whether card of index {card} completes a set or a straight and the maximum value of the possible move
         """
-        completes = False
-        value = 0
-        completes = completes or (hand[card - 1] == 1 and hand[card + 1] == 1)
-        for i in [card - 13, card - 26, card - 39]:
-            completes = completes or hand[i] == 1
-        return completes
+        rank = RANKS[card % 13]
+
+        straight = False
+        straight_value = 0
+
+        set = False
+        set_value = 0
+
+        # Check for straight
+        if rank == "Ace":
+            if hand[card + 1] == 1 and hand[card + 2] == 1:
+                straight = True
+                straight_value = self.card_value(card) + self.card_value(card + 1) + self.card_value(card + 2)
+        elif rank == "Two":
+            if hand[card - 1] == 1 and hand[card + 1] == 1:
+                straight = True
+                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card + 1)
+            if hand[card + 1] == 1 and hand[card + 2] == 1:
+                straight = True
+                straight_value = self.card_value(card) + self.card_value(card + 1) + self.card_value(card + 2)
+        elif rank == "King":
+            if hand[card - 1] == 1 and hand[card - 2] == 1:
+                straight = True
+                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card - 2)
+        elif rank == "Queen":
+            if hand[card - 1] == 1 and hand[card + 1] == 1:
+                straight = True
+                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card + 1)
+            if hand[card - 1] == 1 and hand[card - 2] == 1:
+                straight = True
+                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card - 2)
+        else:
+            if hand[card - 1] == 1 and hand[card + 1] == 1:
+                straight = True
+                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card + 1)
+            if hand[card + 1] == 1 and hand[card + 2] == 1:
+                straight = True
+                straight_value = self.card_value(card) + self.card_value(card + 1) + self.card_value(card + 2)
+            if hand[card - 1] == 1 and hand[card - 2] == 1:
+                straight = True
+                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card - 2)
+        
+        # Check for set (2 or more cards of the same rank)
+        if hand[card - 13] == 1:
+            set = True
+            set_value += self.card_value(card) + self.card_value(card - 13)
+        if hand[card - 26] == 1:
+            set = True
+            set_value += self.card_value(card) + self.card_value(card + 13)
+        if hand[card - 39] == 1:
+            set = True
+            set_value += self.card_value(card) + self.card_value(card + 13)
+
+        # If set & straight, return the higher value
+        if set and straight:
+            if set_value > straight_value:
+                return True, set_value
+            else:
+                return True, straight_value
+        elif set:
+            return True, set_value
+        elif straight:
+            return True, straight_value
+        return False, 0
 
     def valid_draws(self) -> list[int]:
         """
