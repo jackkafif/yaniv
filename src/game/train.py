@@ -142,6 +142,9 @@ def train_models(NUM_EPISODES=1000):
             agent2.train()
 
         if episode % SAVE_EVERY == 0:
+            # Flip agent roles
+            agent1, agent2 = agent2, agent1
+            w1, w2 = w2, w1
             for i, agent in enumerate([agent1, agent2], start=1):
                 torch.save(agent.model_phase1.state_dict(),
                            f"{MODEL_DIR}/agent{i}_phase1.pt")

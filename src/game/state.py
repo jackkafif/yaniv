@@ -189,7 +189,6 @@ class GameState:
         Straights are Three consecutive cards of the same suit
         Sets are 2 or more cards of the same rank
 
-
         Args:
             cards (np.ndarray[int]) : The one hot array of cards representing the hand
 
@@ -201,7 +200,6 @@ class GameState:
             valids = np.zeros(31)
             if len(nonzeros) == 0:
                 return valids
-            for idx, comb in COMBINATIONS[len(nonzeros)].items():
             for idx, comb in COMBINATIONS[len(nonzeros)].items():
                 if all(i < len(nonzeros) for i in comb):
                     cards = [nonzeros[i] for i in comb]
