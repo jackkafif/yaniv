@@ -3,20 +3,21 @@ import numpy as np
 from game.globals import *
 
 SUITS = {
-    0 : "Clubs",
-    1 : "Spades",
-    2 : "Hearts",
-    3 : "Diamonds"
+    0: "Clubs",
+    1: "Spades",
+    2: "Hearts",
+    3: "Diamonds"
 }
 
 RANKS = {
-    0 : "Ace", 1 : "Two", 2 : "Three", 3 : "Four",
-    4 : "Five", 5 : "Six", 6 : "Seven", 7 : "Eight", 8 : "Nine",
-    9 : "Ten", 10 : "Jack", 11 : "Queen", 12 : "King"
+    0: "Ace", 1: "Two", 2: "Three", 3: "Four",
+    4: "Five", 5: "Six", 6: "Seven", 7: "Eight", 8: "Nine",
+    9: "Ten", 10: "Jack", 11: "Queen", 12: "King"
 }
 
-SUITS_REVERSE = {value : key for key, value in SUITS.items()}
-RANKS_REVERSE = {value : key for key, value in RANKS.items()}
+SUITS_REVERSE = {value: key for key, value in SUITS.items()}
+RANKS_REVERSE = {value: key for key, value in RANKS.items()}
+
 
 class GameState:
     def __init__(self) -> None:
@@ -48,7 +49,7 @@ class GameState:
     def card_to_name(self, card):
         """
         The name of the card in English
-        
+
         Args:
             card (int) : The index of the card in the card array
 
@@ -58,11 +59,11 @@ class GameState:
         suit = SUITS[card // 13]
         rank = RANKS[card % 13]
         return f"{rank} of {suit}"
-    
-    def name_to_card(self, name : str) -> int:
+
+    def name_to_card(self, name: str) -> int:
         """
         The index of the card in the card array
-        
+
         Args:
             name (int) : The name of the card in English
 
@@ -76,7 +77,7 @@ class GameState:
     def hand_to_cards(self, hand: np.ndarray[int]) -> list[str]:
         """
         A list of the names of the cards in hand
-        
+
         Args:
             hand (np.ndarray[int]) : The one hot array of cards representing the hand
 
@@ -88,25 +89,25 @@ class GameState:
             if hand[card] == 1:
                 cards.append(self.card_to_name(card))
         return cards
-    
-    def move_value(self, hand : np.ndarray[int], move: list[int]) -> int:
+
+    def move_value(self, hand: np.ndarray[int], move: list[int]) -> int:
         """
         Value of the cards being played in move {move} from hand {hand}
 
         Params: 
             hand (np.ndarray[int]) : The one hot array of cards representing the hand
             move (list[int]) : List of indices of nonzero cards in hand (0 - 4) representing move
-        
+
         Returns:
             int : Value of the cards played
         """
         card_idxs = self.card_indices(hand)
         value = 0
         for m in move:
-            val = self.card_value(card_idxs[m]) 
+            val = self.card_value(card_idxs[m])
             value += val
         return value
-    
+
     def move_to_cards(self, hand: np.ndarray[int], move: list[int]) -> str:
         """
         String of the cards being played in move {move} from hand {hand}
@@ -114,19 +115,19 @@ class GameState:
         Params: 
             hand (np.ndarray[int]) : The one hot array of cards representing the hand
             move (list[int]) : List of indices of nonzero cards in hand (0 - 4) representing move
-        
+
         Returns:
             str : English language list of cards played in move
         """
         card_idxs = self.card_indices(hand)
         sb = "[ "
         for idx, i in enumerate(move):
-            sb += self.card_to_name(card_idxs[i]) 
+            sb += self.card_to_name(card_idxs[i])
             if idx != len(move) - 1:
                 sb += ", "
         sb += " ]"
         return sb
-    
+
     def get_top_cards(self) -> np.ndarray[int]:
         """
         Returns:
@@ -136,8 +137,8 @@ class GameState:
         for card in self.top_cards:
             top[card] += 1
         return top
-    
-    def valid_move(self, cards : list[int]) -> bool:
+
+    def valid_move(self, cards: list[int]) -> bool:
         """
         Whether playing the cards in cards is a valid move
 
@@ -160,7 +161,7 @@ class GameState:
             straight = straight and (card == curr + 1)
             curr = card
         return straight or rank_same
-    
+
     def valid_move_indices(self, hand: np.ndarray[int]) -> np.ndarray[int]:
         """
         The valid playable moves from hand in vector form
@@ -176,7 +177,7 @@ class GameState:
             valids = np.zeros(31)
             if len(nonzeros) == 0:
                 return valids
-            for idx, comb in helpers.COMBINATIONS[len(nonzeros)].items():
+            for idx, comb in COMBINATIONS[len(nonzeros)].items():
                 if all(i < len(nonzeros) for i in comb):
                     cards = [nonzeros[i] for i in comb]
                     if self.valid_move(cards):
@@ -185,7 +186,7 @@ class GameState:
         except:
             print(hand)
             raise Exception
-    
+
     def valid_moves(self, hand: np.ndarray[int]) -> list[tuple[int]]:
         """
         The valid playable moves from hand
@@ -198,8 +199,8 @@ class GameState:
         """
         valids = self.valid_move_indices(hand)
         return np.where(valids == 1)[0]
-    
-    def card_value(self, idx : int):
+
+    def card_value(self, idx: int):
         """
         The yaniv value for a card of rank rank
 
@@ -228,7 +229,7 @@ class GameState:
         """
         return np.nonzero(hand)[0]
 
-    def get_features(self, hand : np.ndarray, other_hand : np.ndarray) -> np.ndarray[int]:
+    def get_features(self, hand: np.ndarray, other_hand: np.ndarray) -> np.ndarray[int]:
         """
         The features of the game known to player with hand {hand} playing against opponent with hand {other_hand}
 
@@ -245,8 +246,8 @@ class GameState:
         valid_moves = self.valid_moves(hand)
         vals = self.get_moves_values(hand, valid_moves).flatten()
         return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals])
-    
-    def get_moves_values(self, hand : np.ndarray[int], moves : list[int]) -> np.ndarray[int]:
+
+    def get_moves_values(self, hand: np.ndarray[int], moves: list[int]) -> np.ndarray[int]:
         nzs = np.nonzero(hand)[0]
         nz_values = [self.card_value(i) for i in nzs]
         move_values = np.zeros(32)
@@ -282,7 +283,6 @@ class GameState:
             np.random.shuffle(self.deck)
             self.curr_idx = 0
         return self.deck[self.curr_idx]
-            
 
     def can_yaniv(self, hand: np.ndarray) -> bool:
         """
@@ -335,8 +335,8 @@ class GameState:
         except:
             print(self.top_cards, idx)
             raise Exception
-    
-    def play(self, hand : np.ndarray[int], cards : list[int]) -> int:
+
+    def play(self, hand: np.ndarray[int], cards: list[int]) -> int:
         """
         Plays the cards in {cards} from {hand} and draws {draw_idx} card from discard or deck
 
@@ -358,8 +358,8 @@ class GameState:
             counter += 1
 
         return
-    
-    def draw(self, hand : np.ndarray[int], cards : list[int], draw_idx : int) -> int:
+
+    def draw(self, hand: np.ndarray[int], cards: list[int], draw_idx: int) -> int:
         """
         Draws {draw_idx} card from discard or deck and places {cards} on top of discard pile
 
@@ -387,8 +387,8 @@ class GameState:
         except:
             print(self.hand_to_cards(hand), nzs, cards)
             raise Exception
-    
-    def completes_move(self, hand : np.ndarray[int], card : int) -> tuple[bool, int]: 
+
+    def completes_move(self, hand: np.ndarray[int], card: int) -> tuple[bool, int]:
         """
         Whether card of index {card} completes a set or a straight and the value of said move
 
@@ -405,7 +405,7 @@ class GameState:
         for i in [card - 13, card - 26, card - 39]:
             completes = completes or hand[i] == 1
         return completes
-    
+
     def valid_draws(self) -> list[int]:
         """
         Returns: 
@@ -415,8 +415,8 @@ class GameState:
         for i in range(1, len(self.top_cards)):
             draws.append(i + 1)
         return draws
-    
-    def playOpponentTurn(self, hand: np.ndarray, other : np.ndarray) -> tuple[bool, bool]:
+
+    def playOpponentTurn(self, hand: np.ndarray, other: np.ndarray) -> tuple[bool, bool]:
         """
         Plays opponents' turns (using self.player_2_hand as opponent hand) based on heuristic
 
@@ -430,8 +430,8 @@ class GameState:
             done = True
         else:
             moves = list(self.valid_moves(hand))
-            moves.sort( 
-                key = lambda move : -1 * self.move_value(
+            moves.sort(
+                key=lambda move: -1 * self.move_value(
                     self.player_2_hand, list(POSSIBLE_MOVES[move])
                 )
             )
@@ -441,7 +441,8 @@ class GameState:
                 if move == 0:
                     pass
                 else:
-                    completes, _ = self.completes_move(hand, self.top_cards[move - 1])
+                    completes, _ = self.completes_move(
+                        hand, self.top_cards[move - 1])
                     if completes:
                         idx = move
                         drew = True

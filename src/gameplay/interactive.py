@@ -1,10 +1,11 @@
+from game.train import train_models, play_agent
 from game.state import GameState
 from gameplay.userinterface import display_hand
 import time
 import os
 from game.helpers import *
 POSSIBLE_MOVES = generate_combinations(5)
-from game.train import train_models, play_agent
+
 
 def play(visual=False):
     w1, w2, m1, m2 = train_models(0)
@@ -38,39 +39,46 @@ def play(visual=False):
                 display_hand(state.player_1_hand, True)
                 # print("Value: " + str(state.get_hand_value(state.player_1_hand)))
 
-            yaniv = input(
-                "Enter Y if you'd like to call Yaniv, anything else otherwise: ")
-            if "Y" == yaniv and state.can_yaniv(state.player_1_hand):
-                if state.can_yaniv(state.player_1_hand):
-                    done = True
-                    if state.yaniv(state.player_1_hand, [state.player_2_hand]):
-                        print("You won!")
-                    else:
-                        print("You lost!")
-                    break
             valid_moves = list(state.valid_moves(state.player_1_hand))
             valid_moves = [POSSIBLE_MOVES[move] for move in valid_moves]
             # print(valid_moves)
             while True:
                 move = input(
-                    "Input the cards you want to play in their indices 0 1 2 ...: ")
+                    "Enter Y if you'd like to call Yaniv. " +
+                    "Otherwise, input the cards you want to play in their indices 0 1 2 ...: ")
+                if (move == "Y"):
+                    if state.can_yaniv(state.player_1_hand):
+                        done = True
+                        if state.yaniv(state.player_1_hand, [state.player_2_hand]):
+                            print("You won!")
+                        else:
+                            print("You lost!")
+                        break
+                    else:
+                        print("Invalid move, please try again")
+                        continue
+
                 try:
                     indices = tuple([int(i) for i in move.split(" ")])
                     if indices in valid_moves:
                         break
+                    else:
+                        print("Invalid move, please try again")
                 except:
                     print("Invalid move, please try again")
 
-            draw = input(
-                "Input 0 to draw from deck, 1 to draw first index of discard, 2 for second: ")
+            if done:
+                break
+
             while True:
+                draw = input(
+                    "Input 0 to draw from deck, 1 to draw first index of discard, 2 for second: ")
                 try:
-                    if int(draw) in [0, 1, 2]:
+                    if draw in ["0", "1", "2"]:
                         break
-                    else:
-                        print("Invalid draw, please try again ")
+                    print("Invalid draw, please try again ")
                 except:
-                    pass
+                    print("Invalid draw, please try again ")
 
             # print(indices)
             cp = state.player_1_hand.copy()
@@ -79,7 +87,8 @@ def play(visual=False):
 
             # state.play(state.player_2_hand, move)
             # state.draw(cp2, move, int(draw))
-            done, won = play_agent(state, m, state.player_2_hand, state.player_1_hand)
+            done, won = play_agent(
+                state, m, state.player_2_hand, state.player_1_hand)
             if done:
                 print("Your opponent called Yaniv! " +
                       "They have " + str(int(state.get_hand_value(state.player_2_hand))) +
