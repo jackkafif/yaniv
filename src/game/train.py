@@ -3,16 +3,10 @@
 import torch
 from game.agent import YanivAgent
 from game.state import GameState
-from game.helpers import *
+from game.globals import *
 import numpy as np
 import os
 import random
-
-STATE_SIZE = 106  # 52 (hand) + 52 (top cards) + 1 (opp hand size) + 1 (turn)
-SAVE_EVERY = 50
-MODEL_DIR = "src/agent/checkpoints"
-POSSIBLE_MOVES = generate_combinations(5)
-
 
 def play_agent(game: GameState, p1: YanivAgent, hand: np.ndarray, other: np.ndarray):
     s1 = p1.state_to_tensor(game, hand, other)
@@ -156,6 +150,7 @@ def train_models(NUM_EPISODES=1000):
                 torch.save(agent.model_phase3.state_dict(),
                            f"{MODEL_DIR}/agent{i}_phase3.pt")
             print(f"Checkpoint saved at episode {episode}")
+            print(f"Agent 1 win % is {w1 / episode} to Agent 2's {w2 / episode}")
 
     return w1, w2, agent1, agent2
 

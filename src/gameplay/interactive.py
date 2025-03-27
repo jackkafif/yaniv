@@ -1,4 +1,3 @@
-from game.combined_model import CombinedModel, play_step
 from game.state import GameState
 from gameplay.userinterface import display_hand
 import time
@@ -7,7 +6,7 @@ from game.helpers import *
 POSSIBLE_MOVES = generate_combinations(5)
 from game.train import train_models, play_agent
 
-def play(model: CombinedModel, visual=False):
+def play(visual=False):
     w1, w2, m1, m2 = train_models(0)
     os.system('clear')
     if w1 > w2:
@@ -16,7 +15,7 @@ def play(model: CombinedModel, visual=False):
     else:
         m = m2
         print(m2)
-    m.epsilon = 0
+    m.epsilon = 0.1
     play = True
     while play:  # input("Would you like to play Yaniv? Y/N: ") == "Y":
         state = GameState()
@@ -96,4 +95,4 @@ def play(model: CombinedModel, visual=False):
         play = (again == "Y")
 
 
-play("", True)
+play(True)

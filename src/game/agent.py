@@ -3,22 +3,16 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import random
-from game.helpers import *
 from collections import deque
 from game.state import GameState
-
-POSSIBLE_MOVES = generate_combinations(5)
-
-PHASE1_ACTION_SIZE = 2  # 0 = Play, 1 = Call Yaniv
-PHASE2_ACTION_SIZE = len(POSSIBLE_MOVES)
-PHASE3_ACTION_SIZE = 3  # 0 = Draw from deck, 1 = Draw first from discard, 2 = Draw second from dicard
+from game.globals import *
 
 class DQN(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
-        self.fc1 = nn.Linear(input_size, 128)
-        self.fc2 = nn.Linear(128, 128)
-        self.out = nn.Linear(128, output_size)
+        self.fc1 = nn.Linear(input_size, 160)
+        self.fc2 = nn.Linear(160, 2 * 160)
+        self.out = nn.Linear(2 * 160, output_size)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
@@ -26,7 +20,7 @@ class DQN(nn.Module):
         return self.out(x)
 
 class YanivAgent:
-    def __init__(self, state_size):
+    def __init__(self, state_size = STATE_SIZE):
         self.state_size = state_size
 
         self.model_phase1 = DQN(state_size, PHASE1_ACTION_SIZE)

@@ -1,4 +1,3 @@
-from game.combined_model import CombinedModel
 from game.state import GameState
 import numpy as np
 import time

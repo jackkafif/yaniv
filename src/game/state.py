@@ -1,9 +1,6 @@
 from __future__ import annotations
 import numpy as np
-import game.helpers as helpers
-
-POSSIBLE_MOVES = helpers.generate_combinations(5)
-N_MOVES = len(POSSIBLE_MOVES)
+from game.globals import *
 
 SUITS = {
     0 : "Clubs",
@@ -245,7 +242,18 @@ class GameState:
         other_player_num_cards = len(other_hand)
         turn = self.turn
         top_cards = self.get_top_cards()
-        return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn]])
+        valid_moves = self.valid_moves(hand)
+        vals = self.get_moves_values(hand, valid_moves).flatten()
+        return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals])
+    
+    def get_moves_values(self, hand : np.ndarray[int], moves : list[int]) -> np.ndarray[int]:
+        nzs = np.nonzero(hand)[0]
+        nz_values = [self.card_value(i) for i in nzs]
+        move_values = np.zeros(32)
+        for idx, move in enumerate(moves):
+            for i in POSSIBLE_MOVES[int(move)]:
+                move_values[move] += nz_values[i]
+        return move_values
 
     def get_hand_value(self, hand: np.ndarray[int]) -> int:
         """
@@ -380,9 +388,9 @@ class GameState:
             print(self.hand_to_cards(hand), nzs, cards)
             raise Exception
     
-    def completes_move(self, hand : np.ndarray[int], card : int) -> bool: 
+    def completes_move(self, hand : np.ndarray[int], card : int) -> tuple[bool, int]: 
         """
-        Whether card of index {card} completes a set or a straight
+        Whether card of index {card} completes a set or a straight and the value of said move
 
         Params:
             hand (np.ndarray[int]) : The one hot array of cards representing the player's hand
@@ -392,6 +400,7 @@ class GameState:
             bool : Whether card of index {card} completes a set or a straight
         """
         completes = False
+        value = 0
         completes = completes or (hand[card - 1] == 1 and hand[card + 1] == 1)
         for i in [card - 13, card - 26, card - 39]:
             completes = completes or hand[i] == 1
@@ -432,7 +441,8 @@ class GameState:
                 if move == 0:
                     pass
                 else:
-                    if self.completes_move(hand, self.top_cards[move - 1]):
+                    completes, _ = self.completes_move(hand, self.top_cards[move - 1])
+                    if completes:
                         idx = move
                         drew = True
             if not drew:
