@@ -27,13 +27,17 @@ to_value = {
 }
 
 
-def display_hand(hand, show=True):
+def display_hand(hand, show=True, add_deck=False):
     total_cards = int(np.sum(hand))
     print_string = ""
+    if add_deck:
+        add = 1
+    else:
+        add = 0
     if not show:
-        print_string += (" _______    "*total_cards + "\n" +
-                         ("|       |   " * total_cards + "\n")*4 +
-                         "|_______|   "*total_cards)
+        print_string += (" _______    "*(total_cards+add) + "\n" +
+                         ("|       |   " * (total_cards+add) + "\n")*4 +
+                         "|_______|   "*(total_cards+add))
         print(print_string)
     else:
         cards_list = []
@@ -47,12 +51,15 @@ def display_hand(hand, show=True):
         for suit, value in cards_list:
             value_string += ("|   " + value + "   |   ")
             suit_string += ("|   " + suit + "   |   ")
-        print_string += (" _______    "*total_cards + "\n" +
-                         ("|       |   " * total_cards + "\n") +
+        if add_deck:
+            value_string = "|       |   " + value_string
+            suit_string = "|       |   " + suit_string
+        print_string += (" _______    "*(total_cards+add) + "\n" +
+                         ("|       |   " * (total_cards+add) + "\n") +
                          value_string + "\n" +
-                         ("|       |   " * total_cards + "\n") +
+                         ("|       |   " * (total_cards+add) + "\n") +
                          suit_string + "\n" +
-                         "|_______|   "*total_cards)
+                         "|_______|   "*(total_cards+add))
         print(print_string)
 
 

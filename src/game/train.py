@@ -8,6 +8,7 @@ import numpy as np
 import os
 import random
 
+
 def play_agent(game: GameState, p1: YanivAgent, hand: np.ndarray, other: np.ndarray):
     s1 = p1.state_to_tensor(game, hand, other)
     a1 = p1.choose_action_phase1(game, hand, other)
@@ -153,11 +154,12 @@ def train_models(NUM_EPISODES=1000):
                 torch.save(agent.model_phase3.state_dict(),
                            f"{MODEL_DIR}/agent{i}_phase3.pt")
             print(f"Checkpoint saved at episode {episode}")
-            print(f"Agent 1 win % is {w1 / episode} to Agent 2's {w2 / episode}")
+            print(
+                f"Agent 1 win % is {w1 / episode} to Agent 2's {w2 / episode}")
 
     return w1, w2, agent1, agent2
 
 
 if __name__ == "__main__":
-    w1, w2, _, _ = train_models(10000)
+    w1, w2, _, _ = train_models(1000)
     print(f"Agent 1 won {w1} to 2's {w2}")

@@ -40,12 +40,12 @@ def play(visual=False):
                     f"The card(s) on the top is/are {[state.card_to_name(card) for card in state.top_cards]} ")
             else:
                 print("Opponent's hand:")
-                display_hand(state.player_2_hand, True)
+                display_hand(state.player_2_hand, True, False)
                 # print("Value: " + str(state.get_hand_value(state.player_2_hand)))
                 print("Top cards: ")
-                display_hand(state.get_top_cards(), True)
+                display_hand(state.get_top_cards(), True, True)
                 print("Your hand:")
-                display_hand(state.player_1_hand, True)
+                display_hand(state.player_1_hand, True, False)
                 # print("Value: " + str(state.get_hand_value(state.player_1_hand)))
 
             valid_moves = list(state.valid_moves(state.player_1_hand))

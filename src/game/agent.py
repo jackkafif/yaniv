@@ -18,9 +18,9 @@ PHASE3_ACTION_SIZE = 3
 class DQN(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
-        self.fc1 = nn.Linear(input_size, 128)
-        self.fc2 = nn.Linear(128, 128)
-        self.out = nn.Linear(128, output_size)
+        self.fc1 = nn.Linear(input_size, 160)
+        self.fc2 = nn.Linear(160, 320)
+        self.out = nn.Linear(320, output_size)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
