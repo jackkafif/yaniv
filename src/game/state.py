@@ -269,13 +269,17 @@ class GameState:
         top_cards = self.get_top_cards()
         valid_moves = self.valid_moves(hand)
         vals = self.get_moves_values(hand, valid_moves).flatten()
-        top_1_completes, move_value = self.completes_move(
+        top_1_completes, move_value1 = self.completes_move(
             hand, self.top_cards[0])
+        top1_value = self.card_value(self.top_cards[0])
         if len(self.top_cards) == 1:
-            return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals, [top_1_completes, 0]])
-        top_2_completes, move_value = self.completes_move(
+            return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn],
+                                   vals, [top_1_completes, move_value1, top1_value, 0, 0, 0]])
+        top_2_completes, move_value2 = self.completes_move(
             hand, self.top_cards[1])
-        return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals, [top_1_completes, top_2_completes]])
+        top2_value = self.card_value(self.top_cards[1])
+        return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn],
+                               vals, [top_1_completes, move_value1, top1_value, top_2_completes, move_value2, top2_value]])
 
     # def get_moves_values(self, hand: np.ndarray[int], moves: list[int]) -> np.ndarray[int]:
     #     return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals])
