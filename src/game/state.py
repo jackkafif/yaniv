@@ -161,25 +161,26 @@ class GameState:
         curr = cards[0]
         rank_same = True
         straight = True
-        
+
         # Checking for straight (Need to check special cases of Ace, Two, Queen, King)
-        for card in cards[1:]:  
-            if curr % 13 == 0:
-                straight = straight and (card % 13 == 1)
-            elif curr % 13 == 1:
-                straight = straight and (card % 13 == 2)
-            elif curr % 13 == 11:
-                straight = straight and (card % 13 == 12)
-            elif curr % 13 == 12:
-                straight = straight and (card % 13 == 0)
-            else:
-                straight = straight and (card % 13 == curr % 13 + 1)
+        for card in cards[1:]:
+            # if curr % 13 == 0:
+            #     straight = straight and (card % 13 == 1)
+            # elif curr % 13 == 1:
+            #     straight = straight and (card % 13 == 2)
+            # elif curr % 13 == 11:
+            #     straight = straight and (card % 13 == 12)
+            # elif curr % 13 == 12:
+            #     straight = straight and (card % 13 == 0)
+            # else:
+            straight = straight and (card % 13 == curr %
+                                     13 + 1 and card//13 == curr//13)
             curr = card
 
         for card in cards[1:]:
             rank_same = rank_same and (rank == card % 13)
             curr = card
-        
+
         return straight or rank_same
 
     def valid_move_indices(self, hand: np.ndarray[int]) -> np.ndarray[int]:
@@ -268,16 +269,29 @@ class GameState:
         top_cards = self.get_top_cards()
         valid_moves = self.valid_moves(hand)
         vals = self.get_moves_values(hand, valid_moves).flatten()
-        top_1_completes, move_value = self.completes_move(hand, self.top_cards[0])
+        top_1_completes, move_value = self.completes_move(
+            hand, self.top_cards[0])
         if len(self.top_cards) == 1:
             return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals, [top_1_completes, 0]])
-        top_2_completes, move_value = self.completes_move(hand, self.top_cards[1])
+        top_2_completes, move_value = self.completes_move(
+            hand, self.top_cards[1])
         return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals, [top_1_completes, top_2_completes]])
-    
-    def get_moves_values(self, hand : np.ndarray[int], moves : list[int]) -> np.ndarray[int]:
-        return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals])
 
-    def get_moves_values(self, hand: np.ndarray[int], moves: list[int]) -> np.ndarray[int]:
+    # def get_moves_values(self, hand: np.ndarray[int], moves: list[int]) -> np.ndarray[int]:
+    #     return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn], vals])
+
+    def get_moves_values(self, hand: np.ndarray[int], moves: list[tuple[int]]) -> np.ndarray[int]:
+        """
+        The values of each move given a hand and it's possible moves
+
+        Params:
+            hand (np.ndarray[int]) : The one hot array of cards representing the player's hand
+            moves (list[tuple[int]]) : The possible moves to play with thegiven the hand
+
+        Returns:
+            np.ndarray[int] : An array of the value of each move - postiive if the move is valid,
+            0 otherwise
+        """
         nzs = np.nonzero(hand)[0]
         nz_values = [self.card_value(i) for i in nzs]
         move_values = np.zeros(32)
@@ -445,40 +459,49 @@ class GameState:
         if rank == "Ace":
             if hand[card + 1] == 1 and hand[card + 2] == 1:
                 straight = True
-                straight_value = self.card_value(card) + self.card_value(card + 1) + self.card_value(card + 2)
+                straight_value = self.card_value(
+                    card) + self.card_value(card + 1) + self.card_value(card + 2)
         elif rank == "Two":
             if hand[card - 1] == 1 and hand[card + 1] == 1:
                 straight = True
-                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card + 1)
+                straight_value = self.card_value(
+                    card) + self.card_value(card - 1) + self.card_value(card + 1)
             if hand[card + 1] == 1 and hand[card + 2] == 1:
                 straight = True
-                straight_value = self.card_value(card) + self.card_value(card + 1) + self.card_value(card + 2)
+                straight_value = self.card_value(
+                    card) + self.card_value(card + 1) + self.card_value(card + 2)
         elif rank == "King":
             if hand[card - 1] == 1 and hand[card - 2] == 1:
                 straight = True
-                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card - 2)
+                straight_value = self.card_value(
+                    card) + self.card_value(card - 1) + self.card_value(card - 2)
         elif rank == "Queen":
             if hand[card - 1] == 1 and hand[card + 1] == 1:
                 straight = True
-                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card + 1)
+                straight_value = self.card_value(
+                    card) + self.card_value(card - 1) + self.card_value(card + 1)
             if hand[card - 1] == 1 and hand[card - 2] == 1:
                 straight = True
-                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card - 2)
+                straight_value = self.card_value(
+                    card) + self.card_value(card - 1) + self.card_value(card - 2)
         else:
             if hand[card - 1] == 1 and hand[card + 1] == 1:
                 straight = True
-                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card + 1)
+                straight_value = self.card_value(
+                    card) + self.card_value(card - 1) + self.card_value(card + 1)
             if hand[card + 1] == 1 and hand[card + 2] == 1:
                 straight = True
-                straight_value = self.card_value(card) + self.card_value(card + 1) + self.card_value(card + 2)
+                straight_value = self.card_value(
+                    card) + self.card_value(card + 1) + self.card_value(card + 2)
             if hand[card - 1] == 1 and hand[card - 2] == 1:
                 straight = True
-                straight_value = self.card_value(card) + self.card_value(card - 1) + self.card_value(card - 2)
-        
+                straight_value = self.card_value(
+                    card) + self.card_value(card - 1) + self.card_value(card - 2)
+
         # Check for set (2 or more cards of the same rank)
         if hand[card - 13] == 1:
             set = True
-            set_value += self.card_value(card) + self.card_value(card - 13)
+            set_value += self.card_value(card) + self.card_value(card + 13)
         if hand[card - 26] == 1:
             set = True
             set_value += self.card_value(card) + self.card_value(card + 13)

@@ -7,6 +7,7 @@ from game.globals import *
 from game.train import train_models, play_agent
 import numpy as np
 
+
 def play(visual=False):
     w1, w2, m1, m2 = train_models(0)
     os.system('clear')
@@ -18,14 +19,16 @@ def play(visual=False):
         print(m2)
     m.epsilon = 0.1
     play = True
-    while play:  # input("Would you like to play Yaniv? Y/N: ") == "Y":
+    while play:
+        # input("Would you like to play Yaniv? Y/N: ") == "Y":
+        os.system('clear')
         state = GameState()
-        state.player_1_hand = np.zeros(52)
-        state.player_1_hand[state.name_to_card("Ace of Clubs")] = 1
-        state.player_1_hand[state.name_to_card("Two of Clubs")] = 1
-        state.player_1_hand[state.name_to_card("Three of Clubs")] = 1
-        state.player_1_hand[state.name_to_card("Queen of Diamonds")] = 1
-        state.player_1_hand[state.name_to_card("King of Diamonds")] = 1
+        # state.player_1_hand = np.zeros(52)
+        # state.player_1_hand[state.name_to_card("Ace of Clubs")] = 1
+        # state.player_1_hand[state.name_to_card("Two of Clubs")] = 1
+        # state.player_1_hand[state.name_to_card("Three of Clubs")] = 1
+        # state.player_1_hand[state.name_to_card("Queen of Diamonds")] = 1
+        # state.player_1_hand[state.name_to_card("King of Diamonds")] = 1
         win = False
         done = False
         print("Dealing Cards...")
