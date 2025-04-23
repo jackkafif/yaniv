@@ -118,13 +118,15 @@ def run_training_episode(agent: YanivAgent, opponent: YanivAgent):
     # Phase 1: Call Yaniv or Play
     state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
     action1 = agent.choose_action_phase1(game, game.player_1_hand, game.player_2_hand)
+    p1_val = game.get_hand_value(game.player_1_hand)
+    p2_val = game.get_hand_value(game.player_2_hand)
     if action1 == 1:  # Call Yaniv
-        reward = 100 if game.yaniv(game.player_1_hand, [game.player_2_hand]) else -50
+        reward = 30 + p1_val if not game.yaniv(game.player_1_hand, [game.player_2_hand]) else - 50
         next_state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
         agent.store_experience(1, state_tensor, action1, reward, next_state_tensor, True)
         return reward
     else:
-        reward = 0
+        reward = 0 if not game.can_yaniv(game.player_1_hand) else 100 if p1_val < p2_val else - 50
         next_state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
         agent.store_experience(1, state_tensor, action1, reward, next_state_tensor, False)
 
@@ -134,7 +136,7 @@ def run_training_episode(agent: YanivAgent, opponent: YanivAgent):
     discard_indices = POSSIBLE_MOVES[int(action2)]
     hand_copy = game.player_1_hand.copy()
     game.play(game.player_1_hand, discard_indices)
-    reward = -game.get_hand_value(game.player_1_hand)  # shaping
+    reward = - (game.get_hand_value(hand_copy) - game.get_hand_value(game.player_1_hand))  # shaping, doesn't consider opportunity cost
     next_state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
     agent.store_experience(2, state_tensor, action2, reward, next_state_tensor, False)
 
@@ -143,7 +145,8 @@ def run_training_episode(agent: YanivAgent, opponent: YanivAgent):
     action3 = agent.choose_action_phase3(game, game.player_1_hand, game.player_2_hand)
     game.draw(hand_copy, discard_indices, action3) 
     next_state_tensor = agent.state_to_tensor(game, game.player_1_hand, game.player_2_hand)
-    reward = 0
+    reward = 0 # Consider the value of the move completed, but if the other player has yaniv, the reward is negative
+    
     agent.store_experience(3, state_tensor, action3, reward, next_state_tensor, False)
 
     # Opponent plays
