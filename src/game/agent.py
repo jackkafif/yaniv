@@ -6,33 +6,15 @@ import random
 from collections import deque
 from game.state import GameState
 from game.globals import *
-
-class DQN(nn.Module):
-    def __init__(self, input_size, output_size):
-        super().__init__()
-        self.fc1 = nn.Linear(input_size, input_size)
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=input_size**2, kernel_size=1)
-        self.bn1 = nn.BatchNorm1d(input_size**2)
-        self.relu = nn.ReLU()
-        self.out = nn.Linear(input_size**2 * input_size, output_size)
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = x.unsqueeze(1)
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = x.flatten(start_dim=1)
-        x = self.out(x)
-        return x
+from game.nets import DQN1
 
 class YanivAgent:
     def __init__(self, state_size = STATE_SIZE):
         self.state_size = state_size
 
-        self.model_phase1 = DQN(state_size, PHASE1_ACTION_SIZE)
-        self.model_phase2 = DQN(state_size, PHASE2_ACTION_SIZE)
-        self.model_phase3 = DQN(state_size, PHASE3_ACTION_SIZE)
+        self.model_phase1 = DQN1(state_size, PHASE1_ACTION_SIZE)
+        self.model_phase2 = DQN1(state_size, PHASE2_ACTION_SIZE)
+        self.model_phase3 = DQN1(state_size, PHASE3_ACTION_SIZE)
 
         self.optimizer_phase1 = optim.Adam(self.model_phase1.parameters(), lr=1e-3)
         self.optimizer_phase2 = optim.Adam(self.model_phase2.parameters(), lr=1e-3)

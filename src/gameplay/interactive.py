@@ -9,7 +9,7 @@ import numpy as np
 
 
 def play(visual=False):
-    w1, w2, m1, m2 = train_models(0)
+    w1, w2, m1, m2 = train_models(1000)
     os.system('clear')
     if w1 > w2:
         m = m1

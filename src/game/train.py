@@ -128,6 +128,8 @@ def train_models(NUM_EPISODES=1000):
 
         p1, p2 = agent1, agent2
 
+        print(episode, end="\r")
+
         while not done:
             r1a, r2a, done, won = play_turn(
                 game, p1, p2, game.player_1_hand, game.player_2_hand)
