@@ -128,7 +128,7 @@ def train_models(NUM_EPISODES=1000):
 
         p1, p2 = agent1, agent2
 
-        print(episode, end="\r")
+        print(episode)
 
         while not done:
             r1a, r2a, done, won = play_turn(
@@ -141,8 +141,8 @@ def train_models(NUM_EPISODES=1000):
             if done:
                 w2 += 1
                 break
-            agent1.train()
-            agent2.train()
+        agent1.train()
+        agent2.train()
 
         if episode % SAVE_EVERY == 0:
             # Flip agent roles
