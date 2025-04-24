@@ -6,12 +6,13 @@ from game.globals import *
 from game.train import train_models
 from game.agent import YanivAgent, play_agent
 import numpy as np
+import random
 
 def play(visual=False):
-    (w1, win_rates_1), (w2, win_rates_2), m1, m2 = train_models(3)
+    m1, m2 = train_models(0)
     input("Press Enter to start playing...")
     os.system('clear')
-    if w1 > w2:
+    if random.choice([True, False]):
         m = m1
     else:
         m = m2

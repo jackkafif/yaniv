@@ -18,7 +18,7 @@ class YanivAgent:
         self.model_phase2 = M(state_size, len(POSSIBLE_MOVES))
         self.model_phase3 = M(state_size, 3)
 
-        self.epsilon = 0.95
+        self.epsilon = 1.0
         self.epsilon_decay = 0.999
 
     def load_models(self, i: str):

@@ -8,6 +8,7 @@ import numpy as np
 import os
 import random
 from game.nets import *
+import sys
 
 def train_models(NUM_EPISODES=1000):
 
@@ -19,6 +20,10 @@ def train_models(NUM_EPISODES=1000):
 
     for idx, agent in enumerate([agent1, agent2], start=1):
         agent.load_models(idx)
+
+    if NUM_EPISODES == 0:
+        print("No training episodes specified. Exiting.")
+        return agent1, agent2
 
     # Updated training loop for self-play
     w1 = 0
@@ -63,5 +68,5 @@ def train_models(NUM_EPISODES=1000):
     return (w1, win_rates_1), (w2, win_rates_2), agent1, agent2
 
 if __name__ == "__main__":
-    (w1, _), (w2, _), _, _ = train_models(100)
+    (w1, _), (w2, _), _, _ = train_models(int(sys.argv[1]) if len(sys.argv) > 1 else 1000)
     print(f"Agent 1 won {w1} to 2's {w2}")
