@@ -9,6 +9,29 @@ import os
 import random
 from game.nets import *
 
+def load_model(agent: YanivAgent, i: str):
+    if not os.path.exists(MODEL_DIR):
+        os.makedirs(MODEL_DIR)
+    try:
+        agent.model_phase1.load_state_dict(
+            torch.load(f"{MODEL_DIR}/{agent.model_phase1.path}/agent{i}_phase1.pt"))
+        agent.model_phase2.load_state_dict(
+            torch.load(f"{MODEL_DIR}/{agent.model_phase2.path}/agent{i}_phase2.pt"))
+        agent.model_phase3.load_state_dict(
+            torch.load(f"{MODEL_DIR}/{agent.model_phase3.path}/agent{i}_phase3.pt"))
+    except:
+        save_model(agent, i)
+
+def save_model(agent: YanivAgent, i: str):
+    if not os.path.exists(MODEL_DIR):
+        os.makedirs(MODEL_DIR)
+    torch.save(agent.model_phase1.state_dict(),
+               f"{MODEL_DIR}/{agent.model_phase1.path}/agent{i}_phase1.pt")
+    torch.save(agent.model_phase2.state_dict(),
+               f"{MODEL_DIR}/{agent.model_phase2.path}/agent{i}_phase2.pt")
+    torch.save(agent.model_phase3.state_dict(),
+               f"{MODEL_DIR}/{agent.model_phase3.path}/agent{i}_phase3.pt")
+
 
 def play_agent(game: GameState, p1: YanivAgent, hand: np.ndarray, other: np.ndarray):
     s1 = p1.state_to_tensor(game, hand, other)
