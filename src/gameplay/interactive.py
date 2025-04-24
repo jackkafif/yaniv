@@ -17,7 +17,7 @@ def play(visual=False):
     else:
         m = m2
         print(m2)
-    m.epsilon = 0.1
+    m.epsilon = 0.0
     play = True
     while play:
         # input("Would you like to play Yaniv? Y/N: ") == "Y":

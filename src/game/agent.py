@@ -6,15 +6,16 @@ import random
 from collections import deque
 from game.state import GameState
 from game.globals import *
-from game.nets import DQN1
+from game.nets import *
 
 class YanivAgent:
-    def __init__(self, state_size = STATE_SIZE):
+    def __init__(self, state_size = STATE_SIZE, Net1=SimpleNN, Net2=SimpleNN, Net3=SimpleNN):
+        
         self.state_size = state_size
 
-        self.model_phase1 = DQN1(state_size, PHASE1_ACTION_SIZE)
-        self.model_phase2 = DQN1(state_size, PHASE2_ACTION_SIZE)
-        self.model_phase3 = DQN1(state_size, PHASE3_ACTION_SIZE)
+        self.model_phase1 = Net1(state_size, PHASE1_ACTION_SIZE)
+        self.model_phase2 = Net2(state_size, PHASE2_ACTION_SIZE)
+        self.model_phase3 = Net3(state_size, PHASE3_ACTION_SIZE)
 
         self.optimizer_phase1 = optim.Adam(self.model_phase1.parameters(), lr=1e-3)
         self.optimizer_phase2 = optim.Adam(self.model_phase2.parameters(), lr=1e-3)

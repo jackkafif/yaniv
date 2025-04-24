@@ -7,6 +7,7 @@ from game.globals import *
 import numpy as np
 import os
 import random
+from game.nets import *
 
 
 def play_agent(game: GameState, p1: YanivAgent, hand: np.ndarray, other: np.ndarray):
@@ -103,17 +104,17 @@ def train_models(NUM_EPISODES=1000):
     if not os.path.exists(MODEL_DIR):
         os.makedirs(MODEL_DIR)
 
-    agent1 = YanivAgent(state_size=STATE_SIZE)
-    agent2 = YanivAgent(state_size=STATE_SIZE)
+    agent2 = YanivAgent(state_size=STATE_SIZE, Net1=MultipleLayers, Net2=MultipleLayers, Net3=MultipleLayers)
+    agent1 = YanivAgent(state_size=STATE_SIZE, Net1=SimpleNN, Net2=SimpleNN, Net3=SimpleNN)
 
     for i, agent in enumerate([agent1, agent2], start=1):
         try:
             agent.model_phase1.load_state_dict(
-                torch.load(f"{MODEL_DIR}/agent{i}_phase1.pt"))
+                torch.load(f"{MODEL_DIR}/{agent.model_phase1.path}/agent{i}_phase1.pt"))
             agent.model_phase2.load_state_dict(
-                torch.load(f"{MODEL_DIR}/agent{i}_phase2.pt"))
+                torch.load(f"{MODEL_DIR}/{agent.model_phase2.path}/agent{i}_phase2.pt"))
             agent.model_phase3.load_state_dict(
-                torch.load(f"{MODEL_DIR}/agent{i}_phase3.pt"))
+                torch.load(f"{MODEL_DIR}/{agent.model_phase3.path}/agent{i}_phase3.pt"))
             print(f"Loaded model checkpoints for Agent {i}.")
         except:
             print(
@@ -128,8 +129,8 @@ def train_models(NUM_EPISODES=1000):
 
         p1, p2 = agent1, agent2
 
-        print(episode)
-
+        print(episode, '\r', end='')
+        train_every = 1
         while not done:
             r1a, r2a, done, won = play_turn(
                 game, p1, p2, game.player_1_hand, game.player_2_hand)
@@ -141,20 +142,21 @@ def train_models(NUM_EPISODES=1000):
             if done:
                 w2 += 1
                 break
-        agent1.train()
-        agent2.train()
+            if train_every % 10 == 0:
+                agent1.train()
+                agent2.train()
 
         if episode % SAVE_EVERY == 0:
             # Flip agent roles
-            agent1, agent2 = agent2, agent1
-            w1, w2 = w2, w1
+            # agent1, agent2 = agent2, agent1
+            # w1, w2 = w2, w1
             for i, agent in enumerate([agent1, agent2], start=1):
                 torch.save(agent.model_phase1.state_dict(),
-                           f"{MODEL_DIR}/agent{i}_phase1.pt")
+                           f"{MODEL_DIR}/{agent.model_phase1.path}/agent{i}_phase1.pt")
                 torch.save(agent.model_phase2.state_dict(),
-                           f"{MODEL_DIR}/agent{i}_phase2.pt")
+                           f"{MODEL_DIR}/{agent.model_phase2.path}/agent{i}_phase2.pt")
                 torch.save(agent.model_phase3.state_dict(),
-                           f"{MODEL_DIR}/agent{i}_phase3.pt")
+                           f"{MODEL_DIR}/{agent.model_phase3.path}/agent{i}_phase3.pt")
             print(f"Checkpoint saved at episode {episode}")
             print(
                 f"Agent 1 win % is {w1 / episode} to Agent 2's {w2 / episode}")
