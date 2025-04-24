@@ -1,22 +1,20 @@
-from game.train import train_models, play_agent
 from game.state import GameState
 from gameplay.userinterface import display_hand
 import time
 import os
 from game.globals import *
-from game.train import train_models, play_agent
+from game.train import train_models
+from game.agent import YanivAgent, play_agent
 import numpy as np
 
-
 def play(visual=False):
-    w1, w2, m1, m2 = train_models(0)
+    (w1, win_rates_1), (w2, win_rates_2), m1, m2 = train_models(3)
+    input("Press Enter to start playing...")
     os.system('clear')
     if w1 > w2:
         m = m1
-        print(w1)
     else:
         m = m2
-        print(m2)
     m.epsilon = 0.0
     play = True
     while play:
@@ -96,8 +94,8 @@ def play(visual=False):
 
             # state.play(state.player_2_hand, move)
             # state.draw(cp2, move, int(draw))
-            done, won = play_agent(
-                state, m, state.player_2_hand, state.player_1_hand)
+            done, won = m.play_agent(
+                state, state.player_2_hand, state.player_1_hand)
             if done:
                 print("Your opponent called Yaniv! " +
                       "They have " + str(int(state.get_hand_value(state.player_2_hand))) +

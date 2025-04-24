@@ -1,6 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from game.globals import *
+from torch import FloatTensor
 
 SUITS = {
     0: "Clubs",
@@ -39,6 +40,9 @@ class GameState:
         self.top_cards = [self.deal()]
         self.cards_played = []
         self.over = False
+
+    def to_tensor(self, hand : np.ndarray, other : np.ndarray):
+        return FloatTensor(self.get_features(hand, other))
 
     def reset(self) -> GameState:
         """
