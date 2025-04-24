@@ -146,6 +146,7 @@ def train_models(NUM_EPISODES=1000):
     # Updated training loop for self-play
     w1 = 0
     w2 = 0
+    train_every = 1
     for episode in range(1, NUM_EPISODES + 1):
         game = GameState()
         done = False
@@ -153,7 +154,6 @@ def train_models(NUM_EPISODES=1000):
         p1, p2 = agent1, agent2
 
         print(episode, '\r', end='')
-        train_every = 1
         while not done:
             r1a, r2a, done, won = play_turn(
                 game, p1, p2, game.player_1_hand, game.player_2_hand)
@@ -165,9 +165,11 @@ def train_models(NUM_EPISODES=1000):
             if done:
                 w2 += 1
                 break
-            if train_every % 10 == 0:
-                agent1.train()
-                agent2.train()
+        if train_every % 10 == 0:
+            print(f"Training agent {1} on episode {episode}")
+            agent1.train()
+            agent2.train()
+        train_every += 1
 
         if episode % SAVE_EVERY == 0:
             # Flip agent roles

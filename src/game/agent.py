@@ -21,7 +21,7 @@ class YanivAgent:
         self.optimizer_phase2 = optim.Adam(self.model_phase2.parameters(), lr=1e-3)
         self.optimizer_phase3 = optim.Adam(self.model_phase3.parameters(), lr=1e-3)
 
-        self.loss_fn = nn.MSELoss()
+        self.loss_fn = nn.MSELoss() # TODO: test different loss functions
         self.epsilon = 1.0
         self.epsilon_min = 0.1
         self.epsilon_decay = 0.995
