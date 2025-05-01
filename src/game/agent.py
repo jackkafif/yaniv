@@ -6,7 +6,7 @@ import random
 from collections import deque
 from game.state import GameState
 from game.globals import *
-from game.model import M   
+from game.model import M, MDQN
 import os 
 
 class YanivAgent:
@@ -14,9 +14,9 @@ class YanivAgent:
         
         self.state_size = state_size
         
-        self.model_phase1 = M(state_size, 2)
-        self.model_phase2 = M(state_size, len(POSSIBLE_MOVES))
-        self.model_phase3 = M(state_size, 3)
+        self.model_phase1 = MDQN(state_size, 2)
+        self.model_phase2 = MDQN(state_size, len(POSSIBLE_MOVES))
+        self.model_phase3 = MDQN(state_size, 3)
 
         self.epsilon = 1.0
         self.epsilon_decay = 0.999
