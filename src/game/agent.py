@@ -7,13 +7,14 @@ from collections import deque
 from game.state import GameState
 from game.globals import *
 from game.model import M, MDQN
-import os 
+import os
+
 
 class YanivAgent:
-    def __init__(self, state_size = STATE_SIZE):
-        
+    def __init__(self, state_size=STATE_SIZE):
+
         self.state_size = state_size
-        
+
         self.model_phase1 = MDQN(state_size, 2)
         self.model_phase2 = MDQN(state_size, len(POSSIBLE_MOVES))
         self.model_phase3 = MDQN(state_size, 3)
@@ -44,27 +45,29 @@ class YanivAgent:
         torch.save(self.model_phase3.model.state_dict(),
                    f"{MODEL_DIR}/{self.model_phase3.model.path}/agent{i}_phase3.pt")
 
-    def choose_action_phase1(self, state : GameState, hand : np.ndarray, other : np.ndarray):
+    def choose_action_phase1(self, state: GameState, hand: np.ndarray, other: np.ndarray):
         if not state.can_yaniv(hand):
             return 0
         if random.random() < self.epsilon:
             return random.randint(0, 1)
         with torch.no_grad():
-            q_vals = self.model_phase1.model(state.to_tensor(hand, other).unsqueeze(0))
-        print(q_vals)
+            q_vals = self.model_phase1.model(
+                state.to_tensor(hand, other).unsqueeze(0))
+        # print(q_vals)
         return int(torch.argmax(q_vals))
 
-    def choose_action_phase2(self, state : GameState, hand : np.ndarray, other : np.ndarray):
+    def choose_action_phase2(self, state: GameState, hand: np.ndarray, other: np.ndarray):
         valid_moves = state.valid_move_indices(hand)
         if random.random() < self.epsilon:
             return random.choice(np.where(valid_moves > 0)[0])
         with torch.no_grad():
-            q_vals = self.model_phase2.model(state.to_tensor(hand, other).unsqueeze(0))
+            q_vals = self.model_phase2.model(
+                state.to_tensor(hand, other).unsqueeze(0))
             q_vals = q_vals.squeeze(0)
             q_vals[valid_moves.T <= 0] = -np.inf
         return int(torch.argmax(q_vals))
 
-    def choose_action_phase3(self, state : GameState, hand : np.ndarray, other : np.ndarray):
+    def choose_action_phase3(self, state: GameState, hand: np.ndarray, other: np.ndarray):
         valid_draws = state.valid_draws()
         valid_draws_mask = np.zeros(3)
         for i in valid_draws:
@@ -72,23 +75,24 @@ class YanivAgent:
         if random.random() < self.epsilon:
             return random.choice(valid_draws)
         with torch.no_grad():
-            q_vals = self.model_phase3.model(state.to_tensor(hand, other).unsqueeze(0))
+            q_vals = self.model_phase3.model(
+                state.to_tensor(hand, other).unsqueeze(0))
             q_vals = q_vals.squeeze(0)
             q_vals[valid_draws_mask < 1] = -np.inf
         return int(torch.argmax(q_vals))
-    
-    def choose_turn_moves(self, state : GameState, hand : np.ndarray, other : np.ndarray):
+
+    def choose_turn_moves(self, state: GameState, hand: np.ndarray, other: np.ndarray):
         # Convert the state to a tensor
         state_tensor = state.to_tensor(hand, other)
 
         # Choose actions for each phase
-        phase1 = self.choose_action_phase1(state, hand, other) 
+        phase1 = self.choose_action_phase1(state, hand, other)
         phase2 = self.choose_action_phase2(state, hand, other)
         phase3 = self.choose_action_phase3(state, hand, other)
 
         # Return the chosen actions
         return phase1, phase2, phase3
-    
+
     def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray):
         state_tensor = game.to_tensor(hand, other)
 
@@ -102,7 +106,7 @@ class YanivAgent:
             else:
                 reward = -1
             return True, won
-        
+
         # Phase 2: Discard cards
         hc = hand.copy()
         game.play(hand, list(discard_indices))
@@ -113,7 +117,7 @@ class YanivAgent:
         self.model_phase3.add_episode(state_tensor, a3)
 
         return False, False
-    
+
     def train(self, reward):
         # Train the models
         self.model_phase1.replay_game(reward)
@@ -123,6 +127,7 @@ class YanivAgent:
         # Decay epsilon
         if self.epsilon > 0.01:
             self.epsilon *= self.epsilon_decay
+
 
 def play_agent(state: GameState, m: YanivAgent, hand: np.ndarray, other: np.ndarray):
     # Convert the state to a tensor
@@ -135,8 +140,8 @@ def play_agent(state: GameState, m: YanivAgent, hand: np.ndarray, other: np.ndar
 
     return phase1, phase2, phase3
 
-    
-def run_game(p1 : YanivAgent, p2 : YanivAgent):
+
+def run_game(p1: YanivAgent, p2: YanivAgent):
     # Returns True if player 1 wins, False if player 2 wins
     game = GameState()
 
@@ -153,4 +158,3 @@ def run_game(p1 : YanivAgent, p2 : YanivAgent):
         done, won = p2.play_agent(game, p2_hand, p1_hand)
         if done:
             return not won
-        
