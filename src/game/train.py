@@ -17,11 +17,11 @@ def train_models(NUM_EPISODES=1000):
 
     agent1 = YanivAgent(state_size=STATE_SIZE)
     agent2 = YanivAgent(state_size=STATE_SIZE)
-    agent1.epsilon = 0.0
-    agent2.epsilon = 0.0
+    # agent1.epsilon = 0.0
+    # agent2.epsilon = 0.0
 
-    for idx, agent in enumerate([agent1, agent2], start=1):
-        agent.load_models(idx)
+    # for idx, agent in enumerate([agent1, agent2], start=1):
+    #     agent.load_models(idx)
 
     if NUM_EPISODES == 0:
         print("No training episodes specified. Exiting.")
@@ -37,6 +37,8 @@ def train_models(NUM_EPISODES=1000):
         print(f"Episode {episode}", '\r', end='')
         # Randomly select True or False
         if episode == NUM_EPISODES // 2:
+            agent1.epsilon = 1.0
+            agent2.epsilon = 1.0
             w1 = 0
             w2 = 0
             e = 1
@@ -64,8 +66,8 @@ def train_models(NUM_EPISODES=1000):
 
         if episode % SAVE_EVERY == 0:
             print("Saving models...")
-            # agent1.save_models(1)
-            # agent2.save_models(2)
+            agent1.save_models(1)
+            agent2.save_models(2)
 
         if episode % 100 == 0:
             print(f"Episode {episode}: Agent 1 Win Rate: {win_rates_1[-1]:.2f}, Agent 2 Win Rate: {win_rates_2[-1]:.2f}")

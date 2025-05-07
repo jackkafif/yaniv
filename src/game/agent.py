@@ -141,6 +141,7 @@ class YanivAgent:
             else:
                 phase_3_intermediate_loss += 5 if game.card_value(chosen_card) <= 3 else 0  # Slight reward for drawing low-value card
 
+        # phase_3_intermediate_loss = 0
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)
 
