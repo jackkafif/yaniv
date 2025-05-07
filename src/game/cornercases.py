@@ -74,6 +74,7 @@ class CornerCases:
 
 for x in range(10):
     agent = YanivAgent()
+    state = GameState()
     agent.epsilon = 0.0
     cornerCases = CornerCases(agent)
     result = (cornerCases.run_should_yaniv(0))
