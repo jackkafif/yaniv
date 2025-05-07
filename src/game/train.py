@@ -28,6 +28,7 @@ def train_models(NUM_EPISODES=1000):
         return agent1, agent2
 
     # Updated training loop for self-play
+    e = 1
     w1 = 0
     w2 = 0
     win_rates_1 = []
@@ -35,6 +36,10 @@ def train_models(NUM_EPISODES=1000):
     for episode in range(1, NUM_EPISODES + 1):
         print(f"Episode {episode}", '\r', end='')
         # Randomly select True or False
+        if episode == NUM_EPISODES // 2:
+            w1 = 0
+            w2 = 0
+            e = 1
         if random.choice([True, False]):
             if run_game(agent1, agent2):
                 agent1.train(1)
@@ -53,8 +58,9 @@ def train_models(NUM_EPISODES=1000):
                 agent1.train(1)
                 agent2.train(-1)
                 w1 += 1
-        win_rates_1.append(w1 / episode)
-        win_rates_2.append(w2 / episode)
+        win_rates_1.append(w1 / e)
+        win_rates_2.append(w2 / e)
+        e += 1
 
         if episode % SAVE_EVERY == 0:
             print("Saving models...")

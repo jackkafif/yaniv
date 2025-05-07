@@ -123,22 +123,23 @@ class YanivAgent:
         if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
             phase_2_intermediate_loss -= 20
 
-        # Penalize ignoring valuable discard cards
-        if a3 == 0:
-            if len(game.top_cards) > 0:
-                for top_card in game.top_cards:
-                    if game.card_value(top_card) <= 3 or game.completes_move(hand, top_card):
-                        phase_3_intermediate_loss -= 20
+        # Improved phase 3 intermediate loss logic
+        top_card_values = [game.card_value(card) for card in game.top_cards]
+
+        if a3 == 0:  # Draw unknown card
+            if min(top_card_values) <= 3:
+                phase_3_intermediate_loss -= 15  # Penalize skipping low-value visible card
         else:
-            if len(game.top_cards) > 0:
-                if a3 == 2: # Draw first card
-                    card = game.top_cards[1]
-                    other_card = game.top_cards[0]
-                else: # Draw second card
-                    card = game.top_cards[0]
-                    other_card = game.top_cards[1]
-                if not game.completes_move(hand, card) and game.card_value(other_card) > game.card_value(card):
-                    phase_3_intermediate_loss -= 20
+            chosen_card_idx = 1 if a3 == 2 else 0
+            chosen_card = game.top_cards[chosen_card_idx]
+            other_card = game.top_cards[1 - chosen_card_idx]
+
+            if game.completes_move(hand, chosen_card):
+                phase_3_intermediate_loss += 10  # Reward drawing card completing a combination
+            elif game.card_value(chosen_card) > game.card_value(other_card):
+                phase_3_intermediate_loss -= 15  # Penalize taking higher-value card
+            else:
+                phase_3_intermediate_loss += 5 if game.card_value(chosen_card) <= 3 else 0  # Slight reward for drawing low-value card
 
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)

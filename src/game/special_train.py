@@ -89,6 +89,7 @@ if __name__ == "__main__":
     (w1, win_rates_1), (w2, win_rates_2), a1, a2 = train_models(episodes)
     vis = True
     if vis:
+        episodes = np.arange(1, episodes + 1)
         plt.figure()
         plt.plot(episodes, win_rates_1, label='Agent 1 Win %')
         plt.plot(episodes, win_rates_2, label='Agent 2 Win %')
