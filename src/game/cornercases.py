@@ -25,6 +25,30 @@ class CornerCases:
     def __init__(self, agent: YanivAgent):
         self.agent = agent
 
+    def test_straight(agent: YanivAgent, top_card: str = "Ace of Diamonds"):
+        """
+        Test the model with a hand that has a straight over a pair
+        """
+        state = GameState()
+        opp_cards = ["Ace of Spades", "Two of Spades", "Three of Spades", "Four of Spades", "Five of Spades"]
+        cards = ["Ten of Spades", "Ten of Hearts", "Jack of Hearts", "Queen of Hearts", "King of Hearts"]
+        state.player_1_hand[state.player_1_hand != 0] = 0
+        state.player_2_hand[state.player_2_hand != 0] = 0
+
+        for card in cards:
+            state.player_1_hand[state.name_to_card(card)] += 1
+
+        for card in opp_cards:
+            state.player_2_hand[state.name_to_card(card)] += 1
+
+        state.top_cards = [state.name_to_card(top_card)]    
+
+        a1, a2, a3 = agent.choose_turn_moves(state, state.player_1_hand, state.player_2_hand)
+        print(a1, a2, a3)
+        discard_indices = POSSIBLE_MOVES[int(a2)]
+        print(f"Discard indices: {discard_indices}")
+
+
     def run_should_yaniv(self, num_turns):
         # Test case where the player can call Yaniv
         state = GameState()
@@ -54,3 +78,7 @@ for x in range(10):
     cornerCases = CornerCases(agent)
     result = (cornerCases.run_should_yaniv(0))
     print("Turn: ", x, "Result: ", result)
+    for i in range(10):
+        top_card = state.card_to_name(i)
+        print(f"Testing with top card: {top_card}")
+        CornerCases.test_straight(agent, top_card)
