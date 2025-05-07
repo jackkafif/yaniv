@@ -61,6 +61,7 @@ class YanivAgent:
             q_vals = self.model_phase2.model(state.to_tensor(hand, other).unsqueeze(0))
             q_vals = q_vals.squeeze(0)
             q_vals[valid_moves.T <= 0] = -np.inf
+        print(q_vals)
         return int(torch.argmax(q_vals))
 
     def choose_action_phase3(self, state : GameState, hand : np.ndarray, other : np.ndarray):
