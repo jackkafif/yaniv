@@ -129,6 +129,16 @@ class YanivAgent:
                 for top_card in game.top_cards:
                     if game.card_value(top_card) <= 3 or game.completes_move(hand, top_card):
                         phase_3_intermediate_loss -= 20
+        else:
+            if len(game.top_cards) > 0:
+                if a3 == 2: # Draw first card
+                    card = game.top_cards[1]
+                    other_card = game.top_cards[0]
+                else: # Draw second card
+                    card = game.top_cards[0]
+                    other_card = game.top_cards[1]
+                if not game.completes_move(hand, card) and game.card_value(other_card) > game.card_value(card):
+                    phase_3_intermediate_loss -= 20
 
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)

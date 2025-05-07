@@ -23,7 +23,7 @@ def train_models(NUM_EPISODES=1000):
     for idx, agent in enumerate([agent1, agent2], start=1):
         agent.load_models(idx)
 
-    for i in range(3):
+    for i in range(2):
 
         if NUM_EPISODES == 0:
             print("No training episodes specified. Exiting.")

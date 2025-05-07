@@ -402,6 +402,7 @@ class GameState:
         nzs = np.nonzero(hand)[0]
 
         counter = 0
+        self.turn += 1
         for nz in nzs:
             if counter in cards:
                 hand[nz] -= 1
