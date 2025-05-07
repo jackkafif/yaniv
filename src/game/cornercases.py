@@ -9,6 +9,16 @@ from game.nets import *
 import sys
 
 # Create a class that takes in an agent and can run different corner cases
+import numpy as np
+import random
+import torch
+
+np.random.seed(42)
+random.seed(42)
+torch.manual_seed(42)
+torch.cuda.manual_seed_all(42)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 
 class CornerCases:

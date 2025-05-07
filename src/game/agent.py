@@ -51,6 +51,7 @@ class YanivAgent:
             return random.randint(0, 1)
         with torch.no_grad():
             q_vals = self.model_phase1.model(state.to_tensor(hand, other).unsqueeze(0))
+        print(q_vals)
         return int(torch.argmax(q_vals))
 
     def choose_action_phase2(self, state : GameState, hand : np.ndarray, other : np.ndarray):
