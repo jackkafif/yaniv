@@ -17,17 +17,19 @@ class MDQN:
         self.episode_memory = []
         self.gamma = 0.95
         self.policy_net = self.model
+        self.intermediate_loss_weight = 0.1
 
     def forward(self, x):
         return self.model(x)
 
-    def add_episode(self, state_tensor, action_idx):
-        self.episode_memory.append((state_tensor, action_idx))
+    def add_episode(self, state_tensor, action_idx, intermediate_loss=0):
+        self.episode_memory.append((state_tensor, action_idx, intermediate_loss))
 
     def replay_game(self, final_reward):
         # Monte Carlo update with discounting:
-        for t, (state_tensor, action_idx) in enumerate(self.episode_memory):
+        for t, (state_tensor, action_idx, intermediate_loss) in enumerate(self.episode_memory):
             discounted_reward = final_reward * (self.gamma ** (len(self.episode_memory) - t - 1))
+            discounted_reward += intermediate_loss * self.intermediate_loss_weight
 
             predicted_q = self.policy_net(state_tensor)[action_idx]
             target_q = torch.tensor(discounted_reward, dtype=torch.float32)

@@ -98,7 +98,7 @@ class YanivAgent:
 
         a1, a2, a3 = self.choose_turn_moves(game, hand, other)
         discard_indices = POSSIBLE_MOVES[int(a2)]
-        self.model_phase1.add_episode(state_tensor, a1)
+        self.model_phase1.add_episode(state_tensor, a1, 0)
         if a1 == 1 or len(discard_indices) == 0:
             won = game.yaniv(hand, [other])
             if won:
@@ -106,15 +106,40 @@ class YanivAgent:
             else:
                 reward = -1
             return True, won
+        
+        move_played = list(discard_indices)
+        
+        # Check if the player played a low card when they could have played a higher card
+        # Ex: if the player has a straight and they play a low card, they should have played a higher card
+        # Ex: if the player plays a single when they have a pair or a triple (and the other card doesn't complete a straight)
+
+        valid_moves = list(game.valid_moves(hand))
+        # print(game.hand_to_cards(hand))
+        # print(valid_moves)
+        move_values = {POSSIBLE_MOVES[valid_moves[i]] : game.move_value(hand, POSSIBLE_MOVES[valid_moves[i]]) for i in range(len(valid_moves))}
+        # print(move_values)
+        if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
+            phase_2_intermediate_loss = -20
+        else:
+            phase_2_intermediate_loss = 0
+
+        # Check if the cards in the discard pile complete a set/straight
+        # Ex: If the player draws from the deck when they could have drawn from the discard pile to complete a set/straight
+        # Ex: If the player draws from the deck when a low card is on the discard pile
+        phase_3_intermediate_loss = 0
+        if a3 == 0:
+            if len(game.top_cards) > 0:
+                for top_card in game.top_cards:
+                    if game.card_value(top_card) <= 3 or game.completes_move(hand, top_card):
+                        phase_3_intermediate_loss = -20
 
         # Phase 2: Discard cards
         hc = hand.copy()
-        game.play(hand, list(discard_indices))
-        hand[game.draw(hc, list(discard_indices), a3)] += 1
+        game.play(hand, move_played)
+        hand[game.draw(hc, move_played, a3)] += 1
 
-        # Store experience
-        self.model_phase2.add_episode(state_tensor, a2)
-        self.model_phase3.add_episode(state_tensor, a3)
+        self.model_phase2.add_episode(state_tensor, a2, phase_2_intermediate_loss)
+        self.model_phase3.add_episode(state_tensor, a3, phase_3_intermediate_loss)
 
         return False, False
 

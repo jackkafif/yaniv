@@ -390,13 +390,11 @@ class GameState:
 
     def play(self, hand: np.ndarray[int], cards: list[int]) -> int:
         """
-        Plays the cards in {cards} from {hand} and draws {draw_idx} card from discard or deck
+        Plays the cards in {cards} from {hand}
 
         Params:
             hand (np.ndarray[int]) : The one hot array of cards representing the player's hand
             cards (list[int]) : A list of indices in hand of the cards to play
-            draw_idx (int) : -1 if drawing from deck, 0 if drawing first card from discard, 1 if drawing second card from dicard
-
         Returns:
             int : The card draw after playing {cards} from player's {hand}
         """
