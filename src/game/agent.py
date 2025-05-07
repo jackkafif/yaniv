@@ -98,49 +98,57 @@ class YanivAgent:
 
         a1, a2, a3 = self.choose_turn_moves(game, hand, other)
         discard_indices = POSSIBLE_MOVES[int(a2)]
-        self.model_phase1.add_episode(state_tensor, a1, 0)
+
+        # Initialize intermediate losses/rewards
+        phase_1_intermediate_loss = 0
+        phase_2_intermediate_loss = 0
+        phase_3_intermediate_loss = 0
+
+        # Check if player calls Yaniv prematurely or correctly
         if a1 == 1 or len(discard_indices) == 0:
             won = game.yaniv(hand, [other])
             if won:
                 reward = 1
             else:
-                reward = -1
-                if a1 == 1:
-                    # Penalize the player for calling Yaniv when they shouldn't
-                    reward = -10
+                reward = -10 if a1 == 1 else -1  # Strong penalty for premature Yaniv
+            self.model_phase1.add_episode(state_tensor, a1, reward)
             return True, won
-        
+
         move_played = list(discard_indices)
-        
-        # Check if the player played a low card when they could have played a higher card
-        # Ex: if the player has a straight and they play a low card, they should have played a higher card
-        # Ex: if the player plays a single when they have a pair or a triple (and the other card doesn't complete a straight)
 
         valid_moves = list(game.valid_moves(hand))
-        # print(game.hand_to_cards(hand))
-        # print(valid_moves)
-        move_values = {POSSIBLE_MOVES[valid_moves[i]] : game.move_value(hand, POSSIBLE_MOVES[valid_moves[i]]) for i in range(len(valid_moves))}
-        # print(move_values)
-        if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
-            phase_2_intermediate_loss = -20
-        else:
-            phase_2_intermediate_loss = 0
+        move_values = {POSSIBLE_MOVES[valid_moves[i]]: game.move_value(hand, POSSIBLE_MOVES[valid_moves[i]]) for i in range(len(valid_moves))}
 
-        # Check if the cards in the discard pile complete a set/straight
-        # Ex: If the player draws from the deck when they could have drawn from the discard pile to complete a set/straight
-        # Ex: If the player draws from the deck when a low card is on the discard pile
-        phase_3_intermediate_loss = 0
+        # Penalize inefficient discards
+        if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
+            phase_2_intermediate_loss -= 20
+
+        # Penalize ignoring valuable discard cards
         if a3 == 0:
             if len(game.top_cards) > 0:
                 for top_card in game.top_cards:
                     if game.card_value(top_card) <= 3 or game.completes_move(hand, top_card):
-                        phase_3_intermediate_loss = -20
+                        phase_3_intermediate_loss -= 20
 
-        # Phase 2: Discard cards
+        # Reward/penalize changes in hand value after move
+        hand_value_before = game.get_hand_value(hand)
+
+        # Phase 2: Discard cards and draw new card
         hc = hand.copy()
         game.play(hand, move_played)
-        hand[game.draw(hc, move_played, a3)] += 1
+        drawn_card_idx = game.draw(hc, move_played, a3)
+        hand[drawn_card_idx] += 1
 
+        hand_value_after = game.get_hand_value(hand)
+        hand_value_change = hand_value_before - hand_value_after
+
+        if hand_value_change >= 5:
+            phase_2_intermediate_loss += 10  # Reward significantly lowering hand value
+        elif hand_value_change < 0:
+            phase_2_intermediate_loss -= 10  # Penalize increasing hand value
+
+        # Apply episodes with calculated intermediate losses
+        self.model_phase1.add_episode(state_tensor, a1, phase_1_intermediate_loss)
         self.model_phase2.add_episode(state_tensor, a2, phase_2_intermediate_loss)
         self.model_phase3.add_episode(state_tensor, a3, phase_3_intermediate_loss)
 

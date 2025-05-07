@@ -9,6 +9,8 @@ import os
 import random
 from game.nets import *
 import sys
+import matplotlib.pyplot as plt
+import matplotlib
 
 def train_models(NUM_EPISODES=1000):
 
@@ -21,7 +23,7 @@ def train_models(NUM_EPISODES=1000):
     for idx, agent in enumerate([agent1, agent2], start=1):
         agent.load_models(idx)
 
-    for i in range(12):
+    for i in range(3):
 
         if NUM_EPISODES == 0:
             print("No training episodes specified. Exiting.")
@@ -34,6 +36,12 @@ def train_models(NUM_EPISODES=1000):
         win_rates_2 = []
         for episode in range(1, NUM_EPISODES + 1):
             print(f"Episode {episode}", '\r', end='')
+            if episode >= NUM_EPISODES // 2:
+                agent1.epsilon = 0.0
+                agent2.epsilon = 0.0
+            else:
+                agent1.epsilon = 0.4
+                agent2.epsilon = 0.4
             # Randomly select True or False
             if random.choice([True, False]):
                 if run_game(agent1, agent2):
@@ -77,5 +85,19 @@ def train_models(NUM_EPISODES=1000):
     return (w1, win_rates_1), (w2, win_rates_2), agent1, agent2
 
 if __name__ == "__main__":
-    (w1, _), (w2, _), a1, a2 = train_models(int(sys.argv[1]) if len(sys.argv) > 1 else 1000)
+    episodes = int(sys.argv[1]) if len(sys.argv) > 1 else 1000
+    (w1, win_rates_1), (w2, win_rates_2), a1, a2 = train_models(episodes)
+    vis = True
+    if vis:
+        plt.figure()
+        plt.plot(episodes, win_rates_1, label='Agent 1 Win %')
+        plt.plot(episodes, win_rates_2, label='Agent 2 Win %')
+        plt.xlabel('Episode')
+        plt.ylabel('Win Percentage')
+        plt.title('Win Percentage Over Time')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig("vizs/win_percentage.png")
+        plt.show()
+
     print(f"Agent 1 won {w1} to 2's {w2}")
