@@ -7,12 +7,13 @@ from game.train import train_models
 from game.agent import YanivAgent, play_agent
 import numpy as np
 import random
+import sys
 
-def play(visual=False):
-    m1, m2 = train_models(0)
+def play(visual=False, i=0):
+    m1, m2 = train_models(i)
     input("Press Enter to start playing...")
     os.system('clear')
-    if random.choice([True, False]):
+    if random.choice([True, True]):
         m = m1
     else:
         m = m2
@@ -111,5 +112,5 @@ def play(visual=False):
         again = input("Enter Y to play again, anything else to quit: ")
         play = (again == "Y")
 
-
-play(True)
+if __name__ == "__main__":
+    play(True, int(sys.argv[1]) if len(sys.argv) > 1 else 0)
