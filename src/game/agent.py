@@ -100,6 +100,9 @@ class YanivAgent:
                 reward = 1
             else:
                 reward = -1
+                if a1 == 1:
+                    # Penalize the player for calling Yaniv when they shouldn't
+                    reward = -10
             return True, won
         
         move_played = list(discard_indices)
