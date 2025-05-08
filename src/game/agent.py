@@ -149,6 +149,9 @@ class YanivAgent:
         if a3 == 52:  # Draw unknown card
             if min(top_card_values) <= 3:
                 phase_3_intermediate_loss -= 15  # Penalize skipping low-value visible card
+            for card in game.tc_holder:
+                if game.completes_move(hand, card)[0]:
+                    phase_3_intermediate_loss -= 10
         else:
             if len(game.tc_holder) > 1:
 
@@ -169,6 +172,8 @@ class YanivAgent:
                         chosen_card) <= 3 else 0
             else:
                 completes, _ = game.completes_move(hand, a3)
+                if not completes and game.card_value(a3) > 3:
+                    phase_3_intermediate_loss -= 10
                 if completes:
                     phase_3_intermediate_loss += 10
                 if game.card_value(a3) <= 3:
@@ -176,6 +181,32 @@ class YanivAgent:
 
         if len(move_played) == 0:
             raise ValueError("No cards played in phase 2")
+
+        # Reward/penalize changes in hand value after move
+        hand_value_before = game.get_hand_value(hand)
+
+        drawn_card_idx = game.draw(hc, move_played, a3)
+        hand[drawn_card_idx] += 1
+
+        hand_value_after = game.get_hand_value(hand)
+        hand_value_change = hand_value_before - hand_value_after
+
+        if hand_value_change >= 5:
+            phase_2_intermediate_loss += 10  # Reward significantly lowering hand value
+        elif hand_value_change < 0:
+            phase_2_intermediate_loss -= 10  # Penalize increasing hand value
+
+        if game.get_hand_value(hand) <= 7:
+            phase_3_intermediate_loss = 0
+
+        # Apply episodes with calculated intermediate losses
+        self.model_phase1.add_episode(
+            state_tensor, a1, phase_1_intermediate_loss)
+        self.model_phase2.add_episode(
+            state_tensor, a2, phase_2_intermediate_loss)
+        self.model_phase3.add_episode(
+            state_tensor, a3, phase_3_intermediate_loss)
+        
         # Print debug information
         if debug:
             played = []
@@ -198,27 +229,6 @@ class YanivAgent:
                   Phase 3 intermediate loss: {phase_3_intermediate_loss}
                   """)
 
-        # Reward/penalize changes in hand value after move
-        hand_value_before = game.get_hand_value(hand)
-
-        drawn_card_idx = game.draw(hc, move_played, a3)
-        hand[drawn_card_idx] += 1
-
-        hand_value_after = game.get_hand_value(hand)
-        hand_value_change = hand_value_before - hand_value_after
-
-        if hand_value_change >= 5:
-            phase_2_intermediate_loss += 10  # Reward significantly lowering hand value
-        elif hand_value_change < 0:
-            phase_2_intermediate_loss -= 10  # Penalize increasing hand value
-
-        # Apply episodes with calculated intermediate losses
-        self.model_phase1.add_episode(
-            state_tensor, a1, phase_1_intermediate_loss)
-        self.model_phase2.add_episode(
-            state_tensor, a2, phase_2_intermediate_loss)
-        self.model_phase3.add_episode(
-            state_tensor, a3, phase_3_intermediate_loss)
 
         if debug:
             print("End of turn")
