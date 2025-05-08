@@ -542,6 +542,6 @@ class GameState:
         """
         draws = np.zeros(53)
         draws[52] = 1
-        for i in self.top_cards:
+        for i in top_cards:
             draws[i] = 1
         return draws

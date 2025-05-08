@@ -70,7 +70,6 @@ class YanivAgent:
 
     def choose_action_phase3(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards: list):
         valid_draws_mask = state.valid_draws(top_cards)
-        # print(f"Valid draws mask: {valid_draws_mask}")
         if random.random() < self.epsilon:
             return random.choice(valid_draws_mask.nonzero()[0])
         with torch.no_grad():
@@ -80,7 +79,7 @@ class YanivAgent:
                 tensor)
             q_vals = q_vals.squeeze(0)
             q_vals[valid_draws_mask == 0] = -np.inf
-            # print(q_vals)
+            print(q_vals)
         move = int(torch.argmax(q_vals))
         return move
 
@@ -96,7 +95,7 @@ class YanivAgent:
         # Return the chosen actions
         return phase1, phase2, phase3
 
-    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=False):
+    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=True):
         if debug:
             print("Starting turn...")
         state_tensor = game.to_tensor(hand, other, game.top_cards)

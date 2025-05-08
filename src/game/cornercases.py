@@ -25,7 +25,7 @@ class CornerCases:
     def __init__(self):
         # Create an agent and set epsilon to 0.0
         set_seed()
-        agent = YanivAgent("linear-vs-linear", STATE_SIZE, MDQN, MDQN, MDQN)
+        agent = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
         agent.load_models(2)
         agent.epsilon = 0.0
 
@@ -200,8 +200,8 @@ def test_play_high_card():
     result = (cornerCases.run_play_high_card())
     print("Result:", result)
 
-
-# test_yaniv_calling()
-test_pick_up_higher()
-# test_pick_up_card()
-# test_play_high_card()
+if __name__ == "__main__":
+    # test_yaniv_calling()
+    test_pick_up_higher()
+    # test_pick_up_card()
+    # test_play_high_card()
