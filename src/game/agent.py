@@ -47,34 +47,36 @@ class YanivAgent:
         torch.save(self.model_phase3.model.state_dict(),
                    f"{MODEL_DIR}/{self.model_dir}/agent{i}_phase3.pt")
 
-    def choose_action_phase1(self, state: GameState, hand: np.ndarray, other: np.ndarray):
+    def choose_action_phase1(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards : list):
         if not state.can_yaniv(hand):
             return 0
         if random.random() < self.epsilon:
             return random.randint(0, 1)
         with torch.no_grad():
             q_vals = self.model_phase1.model(
-                state.to_tensor(hand, other).unsqueeze(0))
+                state.to_tensor(hand, other, top_cards).unsqueeze(0))
         return int(torch.argmax(q_vals))
 
-    def choose_action_phase2(self, state: GameState, hand: np.ndarray, other: np.ndarray):
+    def choose_action_phase2(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards : list):
         valid_moves = state.valid_move_indices(hand)
         if random.random() < self.epsilon:
             return random.choice(np.where(valid_moves > 0)[0])
         with torch.no_grad():
             q_vals = self.model_phase2.model(
-                state.to_tensor(hand, other).unsqueeze(0))
+                state.to_tensor(hand, other, top_cards).unsqueeze(0))
             q_vals = q_vals.squeeze(0)
             q_vals[valid_moves.T <= 0] = -np.inf
         return int(torch.argmax(q_vals))
 
-    def choose_action_phase3(self, state: GameState, hand: np.ndarray, other: np.ndarray):
+    def choose_action_phase3(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards : list):
         valid_draws_mask = state.valid_draws()
         if random.random() < self.epsilon:
             return random.choice(valid_draws_mask.nonzero()[0])
         with torch.no_grad():
+            tensor = state.to_tensor(hand, other, top_cards).unsqueeze(0)
+            print(f"Tensor is {tensor}")
             q_vals = self.model_phase3.model(
-                state.to_tensor(hand, other).unsqueeze(0))
+                tensor)
             q_vals = q_vals.squeeze(0)
             q_vals[valid_draws_mask == 0] = -np.inf
         move = int(torch.argmax(q_vals))
@@ -92,10 +94,10 @@ class YanivAgent:
         # Return the chosen actions
         return phase1, phase2, phase3
 
-    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray):
-        state_tensor = game.to_tensor(hand, other)
+    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=True):
+        state_tensor = game.to_tensor(hand, other, game.top_cards)
 
-        a1 = self.choose_action_phase1(game, hand, other)
+        a1 = self.choose_action_phase1(game, hand, other, game.top_cards)
 
         # Initialize intermediate losses/rewards
         phase_1_intermediate_loss = 0
@@ -112,7 +114,7 @@ class YanivAgent:
             self.model_phase1.add_episode(state_tensor, a1, reward)
             return True, won
 
-        a2 = self.choose_action_phase2(game, hand, other)
+        a2 = self.choose_action_phase2(game, hand, other, game.top_cards)
         discard_indices = POSSIBLE_MOVES[int(a2)]
         move_played = list(discard_indices)
 
@@ -128,7 +130,8 @@ class YanivAgent:
             phase_2_intermediate_loss -= 20
 
         # Improved phase 3 intermediate loss logic
-        a3 = self.choose_action_phase3(game, hand, other)
+        state_tensor = game.to_tensor(hand, other, game.tc_holder)
+        a3 = self.choose_action_phase3(game, hand, other, game.tc_holder)
         top_card_values = [game.card_value(card) for card in game.tc_holder]
         
         if a3 == 52:  # Draw unknown card
@@ -140,7 +143,8 @@ class YanivAgent:
                 chosen_card = a3
                 other_card = game.tc_holder[0] if game.tc_holder[0] != a3 else game.tc_holder[1]
 
-                if game.completes_move(hand, chosen_card):
+                completes, _ = game.completes_move(hand, chosen_card)
+                if completes:
                     phase_3_intermediate_loss += 9  # Reward drawing card completing a combination
                 elif game.card_value(chosen_card) > game.card_value(other_card):
                     phase_3_intermediate_loss -= 14  # Penalize taking higher-value card
@@ -149,7 +153,8 @@ class YanivAgent:
                     phase_3_intermediate_loss += 5 if game.card_value(
                         chosen_card) <= 3 else 0
             else:
-                if game.completes_move(hand, a3):
+                completes, _ = game.completes_move(hand, a3)
+                if completes:
                     phase_3_intermediate_loss += 10
                 if game.card_value(a3) <= 3:
                     phase_3_intermediate_loss += 4
@@ -157,22 +162,23 @@ class YanivAgent:
         if len(move_played) == 0:
             raise ValueError("No cards played in phase 2")
         # Print debug information
-        played = []
-        nzs = np.nonzero(hc)[0]
-        counter = 0
-        for nz in nzs:
-            if counter in move_played:
-                played.append(game.card_to_name(nz))
-            counter += 1
+        if debug:
+            played = []
+            nzs = np.nonzero(hc)[0]
+            counter = 0
+            for nz in nzs:
+                if counter in move_played:
+                    played.append(game.card_to_name(nz))
+                counter += 1
 
-        print(f"""
-              Top card values: {top_card_values}
-              Top cards: {game.tc_holder}
-              Hand: {game.hand_to_cards(hc)}
-              Discarded cards: {played}
-              Drawn card: {game.card_to_name(a3) if a3 != 52 else "deck"}
-              Phase 3 intermediate loss: {phase_3_intermediate_loss}
-              """)
+            print(f"""
+                Top card values: {top_card_values}
+                Top cards: {[game.card_to_name(game.tc_holder[i]) for i in range(len(game.tc_holder))]}
+                Hand: {game.hand_to_cards(hc)}
+                Discarded cards: {played}
+                Drawn card: {game.card_to_name(a3) if a3 != 52 else "deck"}
+                Phase 3 intermediate loss: {phase_3_intermediate_loss}
+                """)
         # phase_3_intermediate_loss = 0
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)

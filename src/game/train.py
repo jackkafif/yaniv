@@ -11,8 +11,17 @@ import random
 from game.nets import *
 import sys
 
+def set_seed():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
+    torch.cuda.manual_seed_all(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 def train_models(model_comb, NUM_EPISODES=1000):
+
+    set_seed()
 
     if not os.path.exists(MODEL_DIR):
         os.makedirs(MODEL_DIR)
