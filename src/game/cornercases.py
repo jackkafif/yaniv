@@ -25,7 +25,7 @@ class CornerCases:
     def __init__(self):
         # Create an agent and set epsilon to 0.0
         set_seed()
-        agent = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
+        agent = YanivAgent("linear-vs-linear", STATE_SIZE, MDQN, MDQN, MDQN)
         agent.load_models(2)
         agent.epsilon = 0.0
 
@@ -104,7 +104,41 @@ class CornerCases:
         # Set the number of turns
         state.curr_idx = num_turns
 
-        return (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.tc_holder))
+        a3 = (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.tc_holder))
+        top_card_values = [state.card_value(card) for card in state.tc_holder]
+        phase_3_intermediate_loss = 0   
+        if a3 == 52:  # Draw unknown card
+            if min(top_card_values) <= 3:
+                phase_3_intermediate_loss -= 15  # Penalize skipping low-value visible card
+        else:
+            if len(state.tc_holder) > 1:
+
+                chosen_card = a3
+                other_card = state.tc_holder[0] if state.tc_holder[0] != a3 else state.tc_holder[1]
+                print(a3, other_card)
+
+                completes, _ = state.completes_move(state.player_1_hand, chosen_card)
+                completes_other, _ = state.completes_move(state.player_1_hand, other_card)
+                if completes:
+                    phase_3_intermediate_loss += 9  # Reward drawing card completing a combination
+                elif state.card_value(chosen_card) > state.card_value(other_card):
+                    phase_3_intermediate_loss -= 14  # Penalize taking higher-value card
+                elif completes_other:
+                    phase_3_intermediate_loss -= 8
+                else:
+                    # Slight reward for drawing low-value card
+                    phase_3_intermediate_loss += 5 if state.card_value(
+                        chosen_card) <= 3 else 0
+            else:
+                completes, _ = state.completes_move(state.player_1_hand, a3)
+                if completes:
+                    phase_3_intermediate_loss += 10
+                if state.card_value(a3) <= 3:
+                    phase_3_intermediate_loss += 4
+        print(f"Phase 3 Intermediate Loss: {phase_3_intermediate_loss}")
+        return a3
+
+
 
     def run_pick_up_card(self, top_card: str = "Ace of Spades", num_turns: int = 5):
         """

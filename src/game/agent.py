@@ -55,6 +55,7 @@ class YanivAgent:
         with torch.no_grad():
             q_vals = self.model_phase1.model(
                 state.to_tensor(hand, other, top_cards).unsqueeze(0))
+        # print(q_vals)
         return int(torch.argmax(q_vals))
 
     def choose_action_phase2(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards: list):
@@ -66,6 +67,7 @@ class YanivAgent:
                 state.to_tensor(hand, other, top_cards).unsqueeze(0))
             q_vals = q_vals.squeeze(0)
             q_vals[valid_moves.T <= 0] = -np.inf
+        # print(q_vals)
         return int(torch.argmax(q_vals))
 
     def choose_action_phase3(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards: list):
@@ -79,7 +81,7 @@ class YanivAgent:
                 tensor)
             q_vals = q_vals.squeeze(0)
             q_vals[valid_draws_mask == 0] = -np.inf
-            print(q_vals)
+        # print(q_vals)
         move = int(torch.argmax(q_vals))
         return move
 
@@ -134,6 +136,8 @@ class YanivAgent:
         if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
             phase_2_intermediate_loss -= 20
 
+        
+
         # Improved phase 3 intermediate loss logic
         state_tensor = game.to_tensor(hand, other, game.tc_holder)
         a3 = self.choose_action_phase3(game, hand, other, game.tc_holder)
@@ -149,10 +153,13 @@ class YanivAgent:
                 other_card = game.tc_holder[0] if game.tc_holder[0] != a3 else game.tc_holder[1]
 
                 completes, _ = game.completes_move(hand, chosen_card)
+                completes_other, _ = game.completes_move(game.player_1_hand, other_card)
                 if completes:
                     phase_3_intermediate_loss += 9  # Reward drawing card completing a combination
+                elif completes_other:
+                    phase_3_intermediate_loss -= 14
                 elif game.card_value(chosen_card) > game.card_value(other_card):
-                    phase_3_intermediate_loss -= 14  # Penalize taking higher-value card
+                    phase_3_intermediate_loss -= 8  # Penalize taking higher-value card
                 else:
                     # Slight reward for drawing low-value card
                     phase_3_intermediate_loss += 5 if game.card_value(
@@ -185,7 +192,6 @@ class YanivAgent:
                   Phase 2 intermediate loss: {phase_2_intermediate_loss}
                   Phase 3 intermediate loss: {phase_3_intermediate_loss}
                   """)
-            phase_3_intermediate_loss = 0
 
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)
