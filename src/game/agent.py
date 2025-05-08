@@ -15,12 +15,12 @@ class YanivAgent:
 
         self.state_size = state_size
 
-        self.model_phase1 = MDQN(state_size, 2)
-        self.model_phase2 = MDQN(state_size, len(POSSIBLE_MOVES))
-        self.model_phase3 = MDQN(state_size, 3)
+        self.model_phase1 = MDQN(state_size, PHASE1_ACTION_SIZE)
+        self.model_phase2 = MDQN(state_size, PHASE2_ACTION_SIZE)
+        self.model_phase3 = MDQN(state_size, PHASE3_ACTION_SIZE)
 
         self.epsilon = 1.0
-        self.epsilon_decay = 0.999
+        self.epsilon_decay = 0.995
 
     def load_models(self, i: str):
         if not os.path.exists(MODEL_DIR):
@@ -53,7 +53,6 @@ class YanivAgent:
         with torch.no_grad():
             q_vals = self.model_phase1.model(
                 state.to_tensor(hand, other).unsqueeze(0))
-        # print(q_vals)
         return int(torch.argmax(q_vals))
 
     def choose_action_phase2(self, state: GameState, hand: np.ndarray, other: np.ndarray):
@@ -68,20 +67,16 @@ class YanivAgent:
         return int(torch.argmax(q_vals))
 
     def choose_action_phase3(self, state: GameState, hand: np.ndarray, other: np.ndarray):
-        valid_draws = state.valid_draws()
-        valid_draws_mask = np.zeros(3)
-        for i in valid_draws:
-            valid_draws_mask[i] = 1
+        valid_draws_mask = state.valid_draws()
         if random.random() < self.epsilon:
-            return random.choice(valid_draws)
+            return random.choice(valid_draws_mask.nonzero()[0])
         with torch.no_grad():
             q_vals = self.model_phase3.model(
                 state.to_tensor(hand, other).unsqueeze(0))
             q_vals = q_vals.squeeze(0)
-            q_vals[valid_draws_mask < 1] = -np.inf
-            print(q_vals)
-            # print(valid_draws)
-        return int(torch.argmax(q_vals))
+            q_vals[valid_draws_mask == 0] = -np.inf
+        move = int(torch.argmax(q_vals))
+        return move
 
     def choose_turn_moves(self, state: GameState, hand: np.ndarray, other: np.ndarray):
         # Convert the state to a tensor
@@ -128,17 +123,15 @@ class YanivAgent:
 
         # Improved phase 3 intermediate loss logic
         top_card_values = [game.card_value(card) for card in game.top_cards]
-
-        if a3 == 0:  # Draw unknown card
+        
+        if a3 == 52:  # Draw unknown card
             if min(top_card_values) <= 3:
                 phase_3_intermediate_loss -= 15  # Penalize skipping low-value visible card
         else:
             if len(game.top_cards) > 1:
 
-                chosen_card_idx = 1 if a3 == 2 else 0
-
-                chosen_card = game.top_cards[chosen_card_idx]
-                other_card = game.top_cards[1 - chosen_card_idx]
+                chosen_card = a3
+                other_card = game.top_cards[0] if game.top_cards[0] != a3 else game.top_cards[1]
 
                 if game.completes_move(hand, chosen_card):
                     phase_3_intermediate_loss += 10  # Reward drawing card completing a combination
@@ -213,7 +206,6 @@ def run_game(p1: YanivAgent, p2: YanivAgent):
     p2_hand = game.player_2_hand
 
     while True:
-        # Player 1's turn
         done, won = p1.play_agent(game, p1_hand, p2_hand)
         if done:
             return won

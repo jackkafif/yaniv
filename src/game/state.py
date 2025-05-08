@@ -376,7 +376,6 @@ class GameState:
         Returns:
             int : The index of the picked up card in the 52 length array representing a players hand
         """
-        # print(self.top_cards, idx)
         try:
             if idx <= len(self.top_cards) - 1:
                 card = self.top_cards[idx]
@@ -423,10 +422,10 @@ class GameState:
             int : The card draw after playing {cards} from player's {hand}
         """
         nzs = np.nonzero(hand)[0]
-        if draw_idx == 0:
+        if draw_idx == 52:
             card_drawn = self.deal()
         else:
-            card_drawn = self.draw_card(draw_idx - 1)
+            card_drawn = draw_idx
 
         try:
             if len(cards) <= 1:
@@ -528,15 +527,15 @@ class GameState:
             return True, straight_value
         return False, 0
 
-    def valid_draws(self) -> list[int]:
+    def valid_draws(self) -> np.ndarray[int]:
         """
         Returns: 
             list[int] : Valid draw indices for (-1 for deck, 0 for first index of discard, 1 for second index of discard)
         """
-        draws = [0]
-        # print(self.top_cards)
-        for i in range(len(self.top_cards)):
-            draws.append(i + 1)
+        draws = np.zeros(53)
+        draws[52] = 1
+        for i in self.top_cards:
+            draws[i] = 1
         return draws
 
     def playOpponentTurn(self, hand: np.ndarray, other: np.ndarray) -> tuple[bool, bool]:
@@ -560,8 +559,8 @@ class GameState:
             )
             move_i = moves[0]
             drew = False
-            for move in self.valid_draws():
-                if move == 0:
+            for move in self.valid_draws().nonzero()[0]:
+                if move == 52:
                     pass
                 else:
                     completes, _ = self.completes_move(

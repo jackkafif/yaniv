@@ -1,4 +1,5 @@
 from game.helpers import *
+import numpy as np
 
 POSSIBLE_MOVES = generate_combinations(5)
 N_MOVES = len(POSSIBLE_MOVES)
@@ -6,7 +7,8 @@ N_MOVES = len(POSSIBLE_MOVES)
 PHASE1_ACTION_SIZE = 2  # 0 = Play, 1 = Call Yaniv
 PHASE2_ACTION_SIZE = len(POSSIBLE_MOVES)
 # 0 = Draw from deck, 1 = Draw first from discard, 2 = Draw second from dicard
-PHASE3_ACTION_SIZE = 3
+phase_3_arr = np.zeros(53)
+PHASE3_ACTION_SIZE = phase_3_arr.shape[0] # index 52 is draw from deck, i=0-52 is draw card i from discard, masked by 0s at i where i is not in discard
 
 # 52 (hand) + 52 (top cards) + 1 (opp hand size) + 1 (turn) + 32 (move values) + 6 (for each top card, if it completes, max move, and value)
 STATE_SIZE = 104 + 2 + 32 + 6

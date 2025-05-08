@@ -18,8 +18,8 @@ def train_models(NUM_EPISODES=1000):
 
     agent1 = YanivAgent(state_size=STATE_SIZE)
     agent2 = YanivAgent(state_size=STATE_SIZE)
-    # agent1.epsilon = 0.0
-    # agent2.epsilon = 0.0
+    agent1.epsilon = 1.0
+    agent2.epsilon = 1.0
 
     for idx, agent in enumerate([agent1, agent2], start=1):
         agent.load_models(idx)
@@ -38,8 +38,8 @@ def train_models(NUM_EPISODES=1000):
         print(f"Episode {episode}", '\r', end='')
         # Randomly select True or False
         if episode % 750 == 0:
-            agent1.epsilon = 1.0
-            agent2.epsilon = 1.0
+            # agent1.epsilon = 1.0
+            # agent2.epsilon = 1.0
             w1 = 0
             w2 = 0
             e = 1
