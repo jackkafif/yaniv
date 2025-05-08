@@ -138,7 +138,7 @@ class YanivAgent:
 
         # Penalize inefficient discards
         # if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
-        phase_2_intermediate_loss -= max((max(move_values.values()) - move_values[tuple(move_played)]), 5)
+        phase_2_intermediate_loss -= 3*(max((max(move_values.values()) - move_values[tuple(move_played)]), 5))
 
         # print(phase_2_intermediate_loss)
 
@@ -147,9 +147,9 @@ class YanivAgent:
             c1, v1 = game.completes_move(hc, card)
             c2, v2 = game.completes_move(hand, card)
             if (c1 and c2) and (v1 < v2):
-                phase_2_intermediate_loss -= 5
+                phase_2_intermediate_loss -= 15
             elif c1 and not c2:
-                phase_2_intermediate_loss -= 5
+                phase_2_intermediate_loss -= 15
             elif not c1 and c2:
                 phase_2_intermediate_loss += 5
             else:
