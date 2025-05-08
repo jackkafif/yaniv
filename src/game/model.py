@@ -75,3 +75,27 @@ class M:
             self.optimizer.step()
 
         self.episode_memory = []
+
+linear_vs_multi = {
+    "dir" : "linear-vs-multi",
+    "model1" : M,
+    "model2" : MDQN,
+}
+
+linear_vs_linear = {
+    "dir" : "linear-vs-linear",
+    "model1" : M,
+    "model2" : M,
+}
+
+multi_vs_multi = {
+    "dir" : "multi-vs-multi",
+    "model1" : MDQN,
+    "model2" : MDQN,
+}
+
+model_options = {
+    "linear-vs-multi": linear_vs_multi,
+    "linear-vs-linear": linear_vs_linear,
+    "multi-vs-multi": multi_vs_multi
+}

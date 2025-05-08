@@ -2,7 +2,7 @@
 
 import torch
 from game.agent import YanivAgent, run_game
-from game.model import MDQN, M
+from game.model import MDQN, M, linear_vs_linear, linear_vs_multi, multi_vs_multi
 from game.state import GameState
 from game.globals import *
 import numpy as np
@@ -12,13 +12,17 @@ from game.nets import *
 import sys
 
 
-def train_models(NUM_EPISODES=1000):
+def train_models(model_comb, NUM_EPISODES=1000):
 
     if not os.path.exists(MODEL_DIR):
         os.makedirs(MODEL_DIR)
 
-    agent1 = YanivAgent(STATE_SIZE, M, M, M)
-    agent2 = YanivAgent(STATE_SIZE, MDQN, MDQN, MDQN)
+    dir = model_comb["dir"]
+    M1 = model_comb["model1"]
+    M2 = model_comb["model2"]
+
+    agent1 = YanivAgent(dir, STATE_SIZE, M1, M1, M1)
+    agent2 = YanivAgent(dir, STATE_SIZE, M2, M2, M2)
     agent1.epsilon = 1.0
     agent2.epsilon = 1.0
 
@@ -80,6 +84,6 @@ def train_models(NUM_EPISODES=1000):
 
 
 if __name__ == "__main__":
-    (w1, _), (w2, _), _, _ = train_models(
+    (w1, _), (w2, _), _, _ = train_models(linear_vs_linear,
         int(sys.argv[1]) if len(sys.argv) > 1 else 10000)
     print(f"Agent 1 won {w1} to 2's {w2}")

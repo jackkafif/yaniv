@@ -11,9 +11,11 @@ import os
 
 
 class YanivAgent:
-    def __init__(self, state_size=STATE_SIZE, M1 = MDQN, M2 = MDQN, M3 = MDQN):
+    def __init__(self, model_dir, state_size=STATE_SIZE, M1 = MDQN, M2 = MDQN, M3 = MDQN):
 
         self.state_size = state_size
+
+        self.model_dir = model_dir
 
         self.model_phase1 = M1(state_size, PHASE1_ACTION_SIZE)
         self.model_phase2 = M2(state_size, PHASE2_ACTION_SIZE)
@@ -27,11 +29,11 @@ class YanivAgent:
             os.makedirs(MODEL_DIR)
         try:
             self.model_phase1.model.load_state_dict(
-                torch.load(f"{MODEL_DIR}/{self.model_phase1.model.path}/agent{i}_phase1.pt"))
+                torch.load(f"{MODEL_DIR}/{self.model_dir}/agent{i}_phase1.pt"))
             self.model_phase2.model.load_state_dict(
-                torch.load(f"{MODEL_DIR}/{self.model_phase2.model.path}/agent{i}_phase2.pt"))
+                torch.load(f"{MODEL_DIR}/{self.model_dir}/agent{i}_phase2.pt"))
             self.model_phase3.model.load_state_dict(
-                torch.load(f"{MODEL_DIR}/{self.model_phase3.model.path}/agent{i}_phase3.pt"))
+                torch.load(f"{MODEL_DIR}/{self.model_dir}/agent{i}_phase3.pt"))
         except:
             self.save_models(i)
 
@@ -39,11 +41,11 @@ class YanivAgent:
         if not os.path.exists(MODEL_DIR):
             os.makedirs(MODEL_DIR)
         torch.save(self.model_phase1.model.state_dict(),
-                   f"{MODEL_DIR}/{self.model_phase1.model.path}/agent{i}_phase1.pt")
+                   f"{MODEL_DIR}/{self.model_dir}/agent{i}_phase1.pt")
         torch.save(self.model_phase2.model.state_dict(),
-                   f"{MODEL_DIR}/{self.model_phase2.model.path}/agent{i}_phase2.pt")
+                   f"{MODEL_DIR}/{self.model_dir}/agent{i}_phase2.pt")
         torch.save(self.model_phase3.model.state_dict(),
-                   f"{MODEL_DIR}/{self.model_phase3.model.path}/agent{i}_phase3.pt")
+                   f"{MODEL_DIR}/{self.model_dir}/agent{i}_phase3.pt")
 
     def choose_action_phase1(self, state: GameState, hand: np.ndarray, other: np.ndarray):
         if not state.can_yaniv(hand):
