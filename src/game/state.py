@@ -267,7 +267,6 @@ class GameState:
         for card in top_cards:
             top_cards_tensor[card] += 1
         vals = self.get_moves_values(hand, valid_moves).flatten()
-        print(top_cards)
         top_1_completes, move_value1 = self.completes_move(
             hand, top_cards[0])
         top1_value = self.card_value(top_cards[0])
