@@ -139,7 +139,7 @@ class GameState:
             cards (np.ndarray[int]) : The one hot array of cards representing the top of the discard pile
         """
         top = np.zeros(52)
-        for card in self.top_cards:
+        for card in self.tc_holder:
             top[card] += 1
         return top
 
@@ -531,44 +531,6 @@ class GameState:
         """
         draws = np.zeros(53)
         draws[52] = 1
-        for i in self.top_cards:
+        for i in self.tc_holder:
             draws[i] = 1
         return draws
-
-    def playOpponentTurn(self, hand: np.ndarray, other: np.ndarray) -> tuple[bool, bool]:
-        """
-        Plays opponents' turns (using self.player_2_hand as opponent hand) based on heuristic
-
-        Returns:
-            tuple[bool, bool] : tuple of whether the game is over and if the game is over whether opponent won
-        """
-        done = False
-        won = False
-        if self.can_yaniv(hand):
-            won = self.yaniv(hand, [other])
-            done = True
-        else:
-            moves = list(self.valid_moves(hand))
-            moves.sort(
-                key=lambda move: -1 * self.move_value(
-                    self.player_2_hand, list(POSSIBLE_MOVES[move])
-                )
-            )
-            move_i = moves[0]
-            drew = False
-            for move in self.valid_draws().nonzero()[0]:
-                if move == 52:
-                    pass
-                else:
-                    completes, _ = self.completes_move(
-                        hand, self.top_cards[move - 1])
-                    if completes:
-                        idx = move
-                        drew = True
-            if not drew:
-                idx = 0
-            play_move = list(POSSIBLE_MOVES[move_i])
-            hand_copy = hand.copy()
-            self.play(hand, play_move)
-            hand[self.draw(hand_copy, play_move, idx)] += 1
-        return done, won

@@ -129,37 +129,50 @@ class YanivAgent:
 
         # Improved phase 3 intermediate loss logic
         a3 = self.choose_action_phase3(game, hand, other)
-        top_card_values = [game.card_value(card) for card in game.top_cards]
+        top_card_values = [game.card_value(card) for card in game.tc_holder]
         
         if a3 == 52:  # Draw unknown card
             if min(top_card_values) <= 3:
                 phase_3_intermediate_loss -= 15  # Penalize skipping low-value visible card
         else:
-            if len(game.top_cards) > 1:
+            if len(game.tc_holder) > 1:
 
                 chosen_card = a3
-                other_card = game.top_cards[0] if game.top_cards[0] != a3 else game.top_cards[1]
+                other_card = game.tc_holder[0] if game.tc_holder[0] != a3 else game.tc_holder[1]
 
                 if game.completes_move(hand, chosen_card):
-                    phase_3_intermediate_loss += 10  # Reward drawing card completing a combination
+                    phase_3_intermediate_loss += 9  # Reward drawing card completing a combination
                 elif game.card_value(chosen_card) > game.card_value(other_card):
-                    phase_3_intermediate_loss -= 15  # Penalize taking higher-value card
+                    phase_3_intermediate_loss -= 14  # Penalize taking higher-value card
                 else:
                     # Slight reward for drawing low-value card
                     phase_3_intermediate_loss += 5 if game.card_value(
                         chosen_card) <= 3 else 0
             else:
-                if game.completes_move(hand, game.top_cards[0]):
+                if game.completes_move(hand, a3):
                     phase_3_intermediate_loss += 10
-                if game.card_value(game.top_cards[0]) <= 3:
-                    phase_3_intermediate_loss += 5
+                if game.card_value(a3) <= 3:
+                    phase_3_intermediate_loss += 4
 
-        # print(
-        #     top_card_values,
-        #     game.hand_to_cards(game.player_1_hand),
-        #     print(game.top_cards),
-        #     game.card_to_name(a3) if a3 != 52 else "deck", 
-        #     phase_3_intermediate_loss)
+        if len(move_played) == 0:
+            raise ValueError("No cards played in phase 2")
+        # Print debug information
+        played = []
+        nzs = np.nonzero(hc)[0]
+        counter = 0
+        for nz in nzs:
+            if counter in move_played:
+                played.append(game.card_to_name(nz))
+            counter += 1
+
+        print(f"""
+              Top card values: {top_card_values}
+              Top cards: {game.tc_holder}
+              Hand: {game.hand_to_cards(hc)}
+              Discarded cards: {played}
+              Drawn card: {game.card_to_name(a3) if a3 != 52 else "deck"}
+              Phase 3 intermediate loss: {phase_3_intermediate_loss}
+              """)
         # phase_3_intermediate_loss = 0
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)
