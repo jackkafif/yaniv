@@ -9,11 +9,6 @@ import random
 from game.nets import *
 import sys
 
-# Create a class that takes in an agent and can run different corner cases
-import numpy as np
-import random
-import torch
-
 num_trials = 10
 
 

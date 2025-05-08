@@ -11,7 +11,7 @@ import os
 
 
 class YanivAgent:
-    def __init__(self, model_dir, state_size=STATE_SIZE, M1 = MDQN, M2 = MDQN, M3 = MDQN):
+    def __init__(self, model_dir, state_size=STATE_SIZE, M1=MDQN, M2=MDQN, M3=MDQN):
 
         self.state_size = state_size
 
@@ -130,7 +130,7 @@ class YanivAgent:
         # Improved phase 3 intermediate loss logic
         a3 = self.choose_action_phase3(game, hand, other)
         top_card_values = [game.card_value(card) for card in game.tc_holder]
-        
+
         if a3 == 52:  # Draw unknown card
             if min(top_card_values) <= 3:
                 phase_3_intermediate_loss -= 15  # Penalize skipping low-value visible card
@@ -165,14 +165,14 @@ class YanivAgent:
                 played.append(game.card_to_name(nz))
             counter += 1
 
-        print(f"""
-              Top card values: {top_card_values}
-              Top cards: {game.tc_holder}
-              Hand: {game.hand_to_cards(hc)}
-              Discarded cards: {played}
-              Drawn card: {game.card_to_name(a3) if a3 != 52 else "deck"}
-              Phase 3 intermediate loss: {phase_3_intermediate_loss}
-              """)
+        # print(f"""
+        #       Top card values: {top_card_values}
+        #       Top cards: {game.tc_holder}
+        #       Hand: {game.hand_to_cards(hc)}
+        #       Discarded cards: {played}
+        #       Drawn card: {game.card_to_name(a3) if a3 != 52 else "deck"}
+        #       Phase 3 intermediate loss: {phase_3_intermediate_loss}
+        #       """)
         # phase_3_intermediate_loss = 0
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)
@@ -227,13 +227,16 @@ def run_game(p1: YanivAgent, p2: YanivAgent):
 
     p1_hand = game.player_1_hand
     p2_hand = game.player_2_hand
+    num_turns = 0
 
     while True:
         done, won = p1.play_agent(game, p1_hand, p2_hand)
+        num_turns += 1
         if done:
-            return won
+            return (won, num_turns)
 
         # Player 2's turn
         done, won = p2.play_agent(game, p2_hand, p1_hand)
+        num_turns += 1
         if done:
-            return not won
+            return (not won, num_turns)
