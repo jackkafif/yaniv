@@ -85,7 +85,7 @@ def play(visual=False, i=0):
                         if draw == 0:
                             draw = state.draw(cp, indices, 52)
                         else:
-                            tcs = state.get_top_cards().nonzero()[0]
+                            tcs = state.tc_holder
                             draw = state.draw(cp, indices, tcs[draw-1])
                         state.player_1_hand[draw] += 1
                         break
