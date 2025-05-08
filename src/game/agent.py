@@ -74,7 +74,7 @@ class YanivAgent:
             return random.choice(valid_draws_mask.nonzero()[0])
         with torch.no_grad():
             tensor = state.to_tensor(hand, other, top_cards).unsqueeze(0)
-            print(f"Tensor is {tensor}")
+            # print(f"Tensor is {tensor}")
             q_vals = self.model_phase3.model(
                 tensor)
             q_vals = q_vals.squeeze(0)
@@ -94,7 +94,9 @@ class YanivAgent:
         # Return the chosen actions
         return phase1, phase2, phase3
 
-    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=True):
+    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=False):
+        if debug:
+            print("Starting turn...")
         state_tensor = game.to_tensor(hand, other, game.top_cards)
 
         a1 = self.choose_action_phase1(game, hand, other, game.top_cards)
@@ -110,8 +112,10 @@ class YanivAgent:
             if won:
                 reward = 1
             else:
-                reward = -50 if a1 == 1 else -1  # Strong penalty for premature Yaniv
+                reward = -30 if a1 == 1 else -1  # Strong penalty for premature Yaniv
             self.model_phase1.add_episode(state_tensor, a1, reward)
+            if debug:
+                print("End of game", reward)
             return True, won
 
         a2 = self.choose_action_phase2(game, hand, other, game.top_cards)
@@ -171,15 +175,17 @@ class YanivAgent:
                     played.append(game.card_to_name(nz))
                 counter += 1
 
-        # print(f"""
-        #       Top card values: {top_card_values}
-        #       Top cards: {game.tc_holder}
-        #       Hand: {game.hand_to_cards(hc)}
-        #       Discarded cards: {played}
-        #       Drawn card: {game.card_to_name(a3) if a3 != 52 else "deck"}
-        #       Phase 3 intermediate loss: {phase_3_intermediate_loss}
-        #       """)
-        # phase_3_intermediate_loss = 0
+            print(f"""
+                  Top cards: {[game.card_to_name(game.tc_holder[i]) for i in range(len(game.tc_holder))]}
+                  Hand: {game.hand_to_cards(hc)}
+                  Discarded cards: {played}
+                  Drawn card: {game.card_to_name(a3) if a3 != 52 else "deck"}
+                  Phase 1 intermediate loss: {phase_1_intermediate_loss}
+                  Phase 2 intermediate loss: {phase_2_intermediate_loss}
+                  Phase 3 intermediate loss: {phase_3_intermediate_loss}
+                  """)
+            phase_3_intermediate_loss = 0
+
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)
 
@@ -202,6 +208,8 @@ class YanivAgent:
         self.model_phase3.add_episode(
             state_tensor, a3, phase_3_intermediate_loss)
 
+        if debug:
+            print("End of turn")
         return False, False
 
     def train(self, reward):

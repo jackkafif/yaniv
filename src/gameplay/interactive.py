@@ -11,8 +11,8 @@ import random
 import sys
 
 
-def play(visual=False, i=0):
-    m1, m2 = train_models(multi_vs_multi, i)
+def play(visual=False, i=0, model_comb=linear_vs_linear):
+    m1, m2 = train_models(model_comb, i)
     input("Press Enter to start playing...")
     os.system('clear')
     if random.choice([True, False]):
@@ -38,7 +38,7 @@ def play(visual=False, i=0):
                 display_hand(state.player_2_hand, True, False)
                 # print("Value: " + str(state.get_hand_value(state.player_2_hand)))
                 print("Top cards: ")
-                display_hand(state.get_top_cards(), True, True)
+                display_hand(state.get_top_cards(state.top_cards), True, True)
                 print("Your hand:")
                 display_hand(state.player_1_hand, True, False)
                 # print("Value: " + str(state.get_hand_value(state.player_1_hand)))
@@ -115,4 +115,18 @@ def play(visual=False, i=0):
 
 
 if __name__ == "__main__":
-    play(True, int(sys.argv[1]) if len(sys.argv) > 1 else 0)
+    if len(sys.argv) > 1:
+        NUM_EPISODES = int(sys.argv[1])
+        model_comb = linear_vs_linear if sys.argv[2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
+    else:
+        NUM_EPISODES = 10000
+        model_comb = linear_vs_linear
+    if len(sys.argv) > 2:
+        model_comb = linear_vs_linear if sys.argv[2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
+    else:
+        model_comb = linear_vs_linear
+    if len(sys.argv) > 3:
+        vis = sys.argv[3] == "visual"
+    else:
+        vis = False
+    play(vis, NUM_EPISODES, model_comb)

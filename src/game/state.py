@@ -133,13 +133,13 @@ class GameState:
         sb += " ]"
         return sb
 
-    def get_top_cards(self) -> np.ndarray[int]:
+    def get_top_cards(self, tc) -> np.ndarray[int]:
         """
         Returns:
             cards (np.ndarray[int]) : The one hot array of cards representing the top of the discard pile
         """
         top = np.zeros(52)
-        for card in self.tc_holder:
+        for card in tc:
             top[card] += 1
         return top
 
@@ -263,12 +263,15 @@ class GameState:
         other_player_num_cards = len(other_hand)
         turn = self.turn
         valid_moves = self.valid_moves(hand)
+        top_cards_tensor = np.zeros(52)
+        for card in self.tc_holder:
+            top_cards_tensor[card] += 1
         vals = self.get_moves_values(hand, valid_moves).flatten()
         top_1_completes, move_value1 = self.completes_move(
             hand, top_cards[0])
         top1_value = self.card_value(top_cards[0])
         if len(top_cards) == 1:
-            return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn],
+            return np.concatenate([hand.flatten(), top_cards_tensor, [other_player_num_cards, turn],
                                    vals, [top_1_completes, move_value1, top1_value, 0, 0, 0]])
         top_2_completes, move_value2 = self.completes_move(
             hand, top_cards[1])
@@ -281,7 +284,7 @@ class GameState:
         #     Top 2 completes: {top_2_completes}, Move value 2: {move_value2}
         #     Other player num cards: {other_player_num_cards},
         #     """)
-        return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn],
+        return np.concatenate([hand.flatten(), top_cards_tensor, [other_player_num_cards, turn],
                                vals, [top_1_completes, move_value1, top1_value, top_2_completes, move_value2, top2_value]])
 
     # def get_moves_values(self, hand: np.ndarray[int], moves: list[int]) -> np.ndarray[int]:
