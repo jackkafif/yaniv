@@ -5,12 +5,13 @@ import os
 from game.globals import *
 from game.train import train_models
 from game.agent import YanivAgent, play_agent
+from game.model import MDQN, M, linear_vs_linear, linear_vs_multi, multi_vs_multi
 import numpy as np
 import random
 import sys
 
 def play(visual=False, i=0):
-    m1, m2 = train_models(i)
+    m1, m2 = train_models(multi_vs_multi, i)
     input("Press Enter to start playing...")
     os.system('clear')
     if random.choice([True, False]):
