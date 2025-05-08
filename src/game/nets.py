@@ -8,7 +8,7 @@ class MultipleLayers(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
         self.path = "multilayer"
-        self.linear1 = nn.Linear(int(input_size), int(input_size) * 2)
+        self.linear1 = nn.Linear(input_size, input_size * 2)
         self.bn1 = nn.LayerNorm(input_size * 2)
         self.linear2 = nn.Linear(input_size * 2, input_size)
         self.bn2 = nn.LayerNorm(input_size)

@@ -30,7 +30,7 @@ class CornerCases:
     def __init__(self):
         # Create an agent and set epsilon to 0.0
         set_seed()
-        agent = YanivAgent(STATE_SIZE, MDQN, MDQN, MDQN)
+        agent = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
         agent.load_models(2)
         agent.epsilon = 0.0
 
