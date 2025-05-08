@@ -154,6 +154,12 @@ class YanivAgent:
                 if game.card_value(game.top_cards[0]) <= 3:
                     phase_3_intermediate_loss += 5
 
+        # print(
+        #     top_card_values,
+        #     game.hand_to_cards(game.player_1_hand),
+        #     print(game.top_cards),
+        #     game.card_to_name(a3) if a3 != 52 else "deck", 
+        #     phase_3_intermediate_loss)
         # phase_3_intermediate_loss = 0
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)

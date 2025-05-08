@@ -38,6 +38,7 @@ class GameState:
         self.turn = 0
         self.discard = []
         self.top_cards = [self.deal()]
+        self.tc_holder = []
         self.cards_played = []
         self.over = False
 
@@ -168,15 +169,6 @@ class GameState:
 
         # Checking for straight (Need to check special cases of Ace, Two, Queen, King)
         for card in cards[1:]:
-            # if curr % 13 == 0:
-            #     straight = straight and (card % 13 == 1)
-            # elif curr % 13 == 1:
-            #     straight = straight and (card % 13 == 2)
-            # elif curr % 13 == 11:
-            #     straight = straight and (card % 13 == 12)
-            # elif curr % 13 == 12:
-            #     straight = straight and (card % 13 == 0)
-            # else:
             straight = straight and (card % 13 == curr %
                                      13 + 1 and card//13 == curr//13)
             curr = card
@@ -368,10 +360,10 @@ class GameState:
 
     def draw_card(self, idx: int) -> int:
         """
-        Draws card with index {idx} from the discard
+        Draws card with index {idx} from the top
 
         Params:
-            idx (int) : The index of the card in the dicard pile
+            idx (int) : The index of the card in the top
 
         Returns:
             int : The index of the picked up card in the 52 length array representing a players hand
@@ -381,7 +373,8 @@ class GameState:
                 card = self.top_cards[idx]
             else:
                 card = self.top_cards[0]
-            self.top_cards = []
+            self.top_cards = self.tc_holder
+            self.tc_holder = []
             return card
         except:
             print(self.top_cards, idx)
@@ -398,14 +391,20 @@ class GameState:
             int : The card draw after playing {cards} from player's {hand}
         """
         self.discard += self.top_cards
+        self.tc_holder = self.top_cards
+        self.top_cards = []
         nzs = np.nonzero(hand)[0]
 
         counter = 0
         self.turn += 1
         for nz in nzs:
             if counter in cards:
+                self.top_cards.append(nz)
                 hand[nz] -= 1
             counter += 1
+
+        if len(cards) >= 3 and cards[0] == cards[1] - 1: # Playing a straight
+            self.top_cards = [self.top_cards[0], self.top_cards[-1]]
 
         return
 
@@ -427,13 +426,12 @@ class GameState:
         else:
             card_drawn = draw_idx
         try:
-            if len(cards) <= 1:
-                self.top_cards = [nzs[cards[0]]]
-            else:
-                self.top_cards = [nzs[cards[0]], nzs[cards[-1]]]
+            # print("Trying to draw", self.card_to_name(card_drawn)) 
+            if card_drawn in self.tc_holder:
+                self.tc_holder = []
             return card_drawn
         except:
-            print(self.hand_to_cards(hand), nzs, cards)
+            print(self.hand_to_cards(hand), self.tc_holder, self.top_cards, cards, draw_idx)
             raise Exception
 
     def completes_move(self, hand: np.ndarray[int], card: int) -> tuple[bool, int]:
