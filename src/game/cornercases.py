@@ -84,7 +84,7 @@ class CornerCases:
         # Set the number of turns
         state.curr_idx = num_turns
 
-        return (self.agent.choose_action_phase1(state, state.player_1_hand, state.player_2_hand))
+        return (self.agent.choose_action_phase1(state, state.player_1_hand, state.player_2_hand, state.top_cards))
 
     def run_pick_up_higher(self, num_turns: int = 5):
         """
@@ -175,7 +175,7 @@ class CornerCases:
         state.curr_idx = num_turns
 
         result = (self.agent.choose_action_phase2(
-            state, state.player_1_hand, state.player_2_hand))
+            state, state.player_1_hand, state.player_2_hand, state.top_cards))
         print(result)
         return (POSSIBLE_MOVES[int(result)])
 
@@ -235,7 +235,7 @@ def test_play_high_card():
     print("Result:", result)
 
 if __name__ == "__main__":
-    # test_yaniv_calling()
+    test_yaniv_calling()
     test_pick_up_higher()
-    # test_pick_up_card()
-    # test_play_high_card()
+    test_pick_up_card()
+    test_play_high_card()
