@@ -25,7 +25,7 @@ class CornerCases:
     def __init__(self):
         # Create an agent and set epsilon to 0.0
         set_seed()
-        agent = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
+        agent = YanivAgent("linear-vs-linear", STATE_SIZE, MDQN, MDQN, MDQN)
         agent.load_models(2)
         agent.epsilon = 0.0
 
@@ -99,11 +99,12 @@ class CornerCases:
 
         # Generate the state
         state = self.generate_state(cards, opp_cards, top_card)
+        state.tc_holder = state.top_cards
 
         # Set the number of turns
         state.curr_idx = num_turns
 
-        return (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.top_cards))
+        return (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.tc_holder))
 
     def run_pick_up_card(self, top_card: str = "Ace of Spades", num_turns: int = 5):
         """
@@ -171,12 +172,13 @@ def test_yaniv_calling():
 
 
 def test_pick_up_higher():
+    state = GameState()
     for x in range(num_trials):
         # set_seed()
         # Create the corner cases object
         cornerCases = CornerCases()
         result = (cornerCases.run_pick_up_higher(num_turns=x))
-        print("Turn:", x, "Result:", result)
+        print("Turn:", x, "Result:", state.card_to_name(result))
 
 
 def test_pick_up_card():

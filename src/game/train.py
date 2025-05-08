@@ -43,7 +43,7 @@ def train_models(model_comb, NUM_EPISODES=1000, track=False):
         print(f"Episode {episode}", '\r', end='')
         # Randomly select True or False
         if random.choice([True, False]):
-            win, _ = run_game(agent1, agent2)
+            win, turns = run_game(agent1, agent2)
             if win:
                 agent1.train(1)
                 agent2.train(-1)
@@ -53,7 +53,7 @@ def train_models(model_comb, NUM_EPISODES=1000, track=False):
                 agent2.train(1)
                 w2 += 1
         else:
-            win, _ = run_game(agent2, agent1)
+            win, turns = run_game(agent2, agent1)
             if win:
                 agent1.train(-1)
                 agent2.train(1)
@@ -65,6 +65,7 @@ def train_models(model_comb, NUM_EPISODES=1000, track=False):
         win_rates_1.append(w1 / e)
         win_rates_2.append(w2 / e)
         e += 1
+        print(f"Episode {episode} took {turns}", '\r', end='')
 
         if episode % SAVE_EVERY == 0:
             print("Saving models...")

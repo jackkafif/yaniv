@@ -264,7 +264,7 @@ class GameState:
         turn = self.turn
         valid_moves = self.valid_moves(hand)
         top_cards_tensor = np.zeros(52)
-        for card in self.tc_holder:
+        for card in top_cards:
             top_cards_tensor[card] += 1
         vals = self.get_moves_values(hand, valid_moves).flatten()
         top_1_completes, move_value1 = self.completes_move(
