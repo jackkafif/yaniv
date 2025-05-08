@@ -9,9 +9,18 @@ from game.model import MDQN, M, linear_vs_linear, linear_vs_multi, multi_vs_mult
 import numpy as np
 import random
 import sys
+import torch
 
+def set_seed():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
+    torch.cuda.manual_seed_all(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 def play(visual=False, i=0, model_comb=linear_vs_linear):
+    set_seed()
     m1, m2 = train_models(model_comb, i)
     input("Press Enter to start playing...")
     os.system('clear')
