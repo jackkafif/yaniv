@@ -11,7 +11,7 @@ import random
 import sys
 
 
-def play(visual=False, i=0, model_comb=linear_vs_linear):
+def play(visual=False, i=0, model_comb=multi_vs_multi):
     m1, m2 = train_models(model_comb, i)
     input("Press Enter to start playing...")
     os.system('clear')
@@ -117,12 +117,14 @@ def play(visual=False, i=0, model_comb=linear_vs_linear):
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         NUM_EPISODES = int(sys.argv[1])
-        model_comb = linear_vs_linear if sys.argv[2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
+        model_comb = linear_vs_linear if sys.argv[
+            2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
     else:
         NUM_EPISODES = 10000
         model_comb = linear_vs_linear
     if len(sys.argv) > 2:
-        model_comb = linear_vs_linear if sys.argv[2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
+        model_comb = linear_vs_linear if sys.argv[
+            2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
     else:
         model_comb = linear_vs_linear
     if len(sys.argv) > 3:

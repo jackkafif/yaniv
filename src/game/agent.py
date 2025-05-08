@@ -97,7 +97,7 @@ class YanivAgent:
         # Return the chosen actions
         return phase1, phase2, phase3
 
-    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=True):
+    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=False):
         if debug:
             print("Starting turn...")
         state_tensor = game.to_tensor(hand, other, game.top_cards)
@@ -134,7 +134,8 @@ class YanivAgent:
 
         # Penalize inefficient discards
         # if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
-        phase_2_intermediate_loss -= max((max(move_values.values()) - move_values[tuple(move_played)]), 5)
+        phase_2_intermediate_loss -= max(
+            (max(move_values.values()) - move_values[tuple(move_played)]), 5)
 
         # print(phase_2_intermediate_loss)
 
@@ -171,7 +172,8 @@ class YanivAgent:
                 other_card = game.tc_holder[0] if game.tc_holder[0] != a3 else game.tc_holder[1]
 
                 completes, _ = game.completes_move(hand, chosen_card)
-                completes_other, _ = game.completes_move(game.player_1_hand, other_card)
+                completes_other, _ = game.completes_move(
+                    game.player_1_hand, other_card)
                 if completes:
                     phase_3_intermediate_loss += 9  # Reward drawing card completing a combination
                 elif completes_other:
@@ -213,7 +215,7 @@ class YanivAgent:
             state_tensor, a2, phase_2_intermediate_loss)
         self.model_phase3.add_episode(
             state_tensor, a3, phase_3_intermediate_loss)
-        
+
         # Print debug information
         if debug:
             played = []
@@ -235,7 +237,6 @@ class YanivAgent:
                   Phase 2 intermediate loss: {phase_2_intermediate_loss}
                   Phase 3 intermediate loss: {phase_3_intermediate_loss}
                   """)
-
 
         if debug:
             print("End of turn")

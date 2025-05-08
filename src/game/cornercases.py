@@ -25,7 +25,7 @@ class CornerCases:
     def __init__(self):
         # Create an agent and set epsilon to 0.0
         set_seed()
-        agent = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
+        agent = YanivAgent("linear-vs-linear", STATE_SIZE, MDQN, MDQN, MDQN)
         agent.load_models(2)
         agent.epsilon = 0.0
 
@@ -66,7 +66,7 @@ class CornerCases:
             state, state.player_1_hand, state.player_2_hand)
         # print(a1, a2, a3)
         discard_indices = POSSIBLE_MOVES[int(a2)]
-        print(f"Discarding: {[cards[i] for i in discard_indices]}")
+        print(f"Discard indices: {discard_indices}")
 
     def run_should_yaniv(self, your_card: str = "Ace of Spades", num_turns: int = 0):
         """
@@ -94,8 +94,8 @@ class CornerCases:
         # Set the cards for the player, opponent, and top card
         cards = ["Seven of Hearts", "Seven of Diamonds"]
         opp_cards = ["Ace of Hearts"]
-        # top_card = ["Five of Spades", "Seven of Spades"]
-        top_card = ["Nine of Spades", "Seven of Spades"]
+        top_card = ["Five of Spades", "Seven of Spades"]
+        # top_card = ["Nine of Spades", "Seven of Spades"]
 
         # Generate the state
         state = self.generate_state(cards, opp_cards, top_card)
@@ -104,10 +104,42 @@ class CornerCases:
         # Set the number of turns
         state.curr_idx = num_turns
 
-        a3 = (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.tc_holder))
+        a3 = (self.agent.choose_action_phase3(
+            state, state.player_1_hand, state.player_2_hand, state.tc_holder))
+        top_card_values = [state.card_value(card) for card in state.tc_holder]
+        phase_3_intermediate_loss = 0
+        if a3 == 52:  # Draw unknown card
+            if min(top_card_values) <= 3:
+                phase_3_intermediate_loss -= 15  # Penalize skipping low-value visible card
+        else:
+            if len(state.tc_holder) > 1:
+
+                chosen_card = a3
+                other_card = state.tc_holder[0] if state.tc_holder[0] != a3 else state.tc_holder[1]
+                print(a3, other_card)
+
+                completes, _ = state.completes_move(
+                    state.player_1_hand, chosen_card)
+                completes_other, _ = state.completes_move(
+                    state.player_1_hand, other_card)
+                if completes:
+                    phase_3_intermediate_loss += 9  # Reward drawing card completing a combination
+                elif state.card_value(chosen_card) > state.card_value(other_card):
+                    phase_3_intermediate_loss -= 14  # Penalize taking higher-value card
+                elif completes_other:
+                    phase_3_intermediate_loss -= 8
+                else:
+                    # Slight reward for drawing low-value card
+                    phase_3_intermediate_loss += 5 if state.card_value(
+                        chosen_card) <= 3 else 0
+            else:
+                completes, _ = state.completes_move(state.player_1_hand, a3)
+                if completes:
+                    phase_3_intermediate_loss += 10
+                if state.card_value(a3) <= 3:
+                    phase_3_intermediate_loss += 4
+        print(f"Phase 3 Intermediate Loss: {phase_3_intermediate_loss}")
         return a3
-
-
 
     def run_pick_up_card(self, top_card: str = "Ace of Spades", num_turns: int = 5):
         """
@@ -119,14 +151,13 @@ class CornerCases:
         top_card = [top_card]
         # Generate the state
         state = self.generate_state(cards, opp_cards, top_card)
-        state.tc_holder = state.top_cards
 
         # Set the number of turns
         state.curr_idx = num_turns
         # print(state.player_1_hand, state.player_2_hand, state.top_cards)
 
-        a3 = (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.tc_holder))
-        return a3
+        print("TOPCARDS:", state.top_cards)
+        return (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.top_cards))
 
     def run_play_high_card(self, num_turns: int = 5):
         """
@@ -146,6 +177,7 @@ class CornerCases:
 
         result = (self.agent.choose_action_phase2(
             state, state.player_1_hand, state.player_2_hand, state.top_cards))
+        print(result)
         return (POSSIBLE_MOVES[int(result)])
 
 # Tests
@@ -171,7 +203,7 @@ def test_yaniv_calling():
             cornerCases = CornerCases()
             result = (cornerCases.run_should_yaniv(
                 your_card=card, num_turns=x))
-            print("Card:", card, "Turn:", x, "Result:", "Y" if result == 1 else "N")
+            print("Card:", card, "Turn:", x, "Result:", result)
 
 
 def test_pick_up_higher():
@@ -187,7 +219,6 @@ def test_pick_up_higher():
 def test_pick_up_card():
     top_cards = ["Ace of Spades", "Two of Spades", "Three of Spades",
                  "Four of Spades", "Five of Spades", "Six of Spades", "Seven of Spades", "Eight of Spades"]
-    state = GameState()
     for card in top_cards:
         for x in range(num_trials):
             # set_seed()
@@ -195,7 +226,7 @@ def test_pick_up_card():
             cornerCases = CornerCases()
             result = (cornerCases.run_pick_up_card(top_card=card, num_turns=x))
 
-            print("Top Card:", card, "Turn:", x, "Result:", "Deck" if result == 52 else state.card_to_name(result))
+            print("Top Card:", card, "Turn:", x, "Result:", result)
 
 
 def test_play_high_card():
@@ -204,16 +235,9 @@ def test_play_high_card():
     result = (cornerCases.run_play_high_card())
     print("Result:", result)
 
+
 if __name__ == "__main__":
-    print("Testing Yaniv Calling...")
     test_yaniv_calling()
-    print("Finished testing Yaniv Calling")
-    print("Testing Pick Up Higher...")
     test_pick_up_higher()
-    print("Finished testing Pick Up Higher")
-    print("Testing Pick Up Card...")
     test_pick_up_card()
-    print("Finished testing Pick Up Card")
-    print("Testing Play High Card...")
     test_play_high_card()
-    print("Finished testing Play High Card")
