@@ -97,7 +97,7 @@ class YanivAgent:
         # Return the chosen actions
         return phase1, phase2, phase3
 
-    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=True):
+    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=False):
         if debug:
             print("Starting turn...")
         state_tensor = game.to_tensor(hand, other, game.top_cards)
@@ -134,7 +134,7 @@ class YanivAgent:
 
         # Penalize inefficient discards
         # if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
-        phase_2_intermediate_loss -= (move_values[max(move_values)] - move_values[tuple(move_played)]) / 2
+        phase_2_intermediate_loss -= (max(move_values.values()) - move_values[tuple(move_played)])
 
         # print(phase_2_intermediate_loss)
 
