@@ -10,6 +10,7 @@ import numpy as np
 import random
 import sys
 
+
 def play(visual=False, i=0):
     m1, m2 = train_models(multi_vs_multi, i)
     input("Press Enter to start playing...")
@@ -110,6 +111,7 @@ def play(visual=False, i=0):
             # print(f"Your hand is now {state.player_2_hand}")
         again = input("Enter Y to play again, anything else to quit: ")
         play = (again == "Y")
+
 
 if __name__ == "__main__":
     play(True, int(sys.argv[1]) if len(sys.argv) > 1 else 0)

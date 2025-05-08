@@ -84,6 +84,6 @@ def train_models(model_comb, NUM_EPISODES=1000):
 
 
 if __name__ == "__main__":
-    (w1, _), (w2, _), _, _ = train_models(linear_vs_linear,
-        int(sys.argv[1]) if len(sys.argv) > 1 else 10000)
+    (w1, _), (w2, _), _, _ = train_models(multi_vs_multi,
+                                          int(sys.argv[1]) if len(sys.argv) > 1 else 10000)
     print(f"Agent 1 won {w1} to 2's {w2}")
