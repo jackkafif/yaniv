@@ -535,13 +535,13 @@ class GameState:
             return True, straight_value
         return False, 0
 
-    def valid_draws(self) -> np.ndarray[int]:
+    def valid_draws(self, top_cards) -> np.ndarray[int]:
         """
         Returns: 
             list[int] : Valid draw indices for (-1 for deck, 0 for first index of discard, 1 for second index of discard)
         """
         draws = np.zeros(53)
         draws[52] = 1
-        for i in self.tc_holder:
+        for i in self.top_cards:
             draws[i] = 1
         return draws
