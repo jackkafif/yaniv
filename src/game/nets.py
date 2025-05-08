@@ -3,11 +3,12 @@ import torch.nn as nn
 import numpy as np
 from game.globals import *
 
+
 class MultipleLayers(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
         self.path = "multilayer"
-        self.linear1 = nn.Linear(input_size, input_size * 2)
+        self.linear1 = nn.Linear(int(input_size), int(input_size) * 2)
         self.bn1 = nn.LayerNorm(input_size * 2)
         self.linear2 = nn.Linear(input_size * 2, input_size)
         self.bn2 = nn.LayerNorm(input_size)
@@ -24,6 +25,7 @@ class MultipleLayers(nn.Module):
         x = self.linear3(x)
         return x
 
+
 class SimpleNN(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
@@ -37,7 +39,8 @@ class SimpleNN(nn.Module):
         x = self.relu(x)
         x = self.out(x)
         return x
-    
+
+
 class DQN1(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
