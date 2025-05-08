@@ -103,7 +103,7 @@ class CornerCases:
         # Set the number of turns
         state.curr_idx = num_turns
 
-        return (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand))
+        return (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.top_cards))
 
     def run_pick_up_card(self, top_card: str = "Ace of Spades", num_turns: int = 5):
         """
@@ -121,7 +121,7 @@ class CornerCases:
         # print(state.player_1_hand, state.player_2_hand, state.top_cards)
 
         print("TOPCARDS:", state.top_cards)
-        return (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand))
+        return (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.top_cards))
 
     def run_play_high_card(self, num_turns: int = 5):
         """
