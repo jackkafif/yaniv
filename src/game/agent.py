@@ -9,6 +9,8 @@ from game.globals import *
 from game.model import M, MDQN
 import os
 
+debug = False
+
 
 class YanivAgent:
     def __init__(self, model_dir, state_size=STATE_SIZE, M1=MDQN, M2=MDQN, M3=MDQN):
@@ -47,7 +49,7 @@ class YanivAgent:
         torch.save(self.model_phase3.model.state_dict(),
                    f"{MODEL_DIR}/{self.model_dir}/agent{i}_phase3.pt")
 
-    def choose_action_phase1(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards: list):
+    def choose_action_phase1(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards: list, debug=debug):
         if not state.can_yaniv(hand):
             return 0
         if random.random() < self.epsilon:
@@ -55,10 +57,11 @@ class YanivAgent:
         with torch.no_grad():
             q_vals = self.model_phase1.model(
                 state.to_tensor(hand, other, top_cards).unsqueeze(0))
-        # print(q_vals)
+        if debug:
+            print(f"Phase 1 Q values: {q_vals}")
         return int(torch.argmax(q_vals))
 
-    def choose_action_phase2(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards: list):
+    def choose_action_phase2(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards: list, debug=debug):
         valid_moves = state.valid_move_indices(hand)
         if random.random() < self.epsilon:
             return random.choice(np.where(valid_moves > 0)[0])
@@ -67,10 +70,11 @@ class YanivAgent:
                 state.to_tensor(hand, other, top_cards).unsqueeze(0))
             q_vals = q_vals.squeeze(0)
             q_vals[valid_moves.T <= 0] = -np.inf
-        # print(q_vals)
+        if debug:
+            print(f"Phase 2 Q values: {q_vals}")
         return int(torch.argmax(q_vals))
 
-    def choose_action_phase3(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards: list):
+    def choose_action_phase3(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards: list, debug=debug):
         valid_draws_mask = state.valid_draws(top_cards)
         if random.random() < self.epsilon:
             return random.choice(valid_draws_mask.nonzero()[0])
@@ -81,7 +85,8 @@ class YanivAgent:
                 tensor)
             q_vals = q_vals.squeeze(0)
             q_vals[valid_draws_mask == 0] = -np.inf
-        # print(q_vals)
+        if debug:
+            print(f"Phase 3 Q values: {q_vals}")
         move = int(torch.argmax(q_vals))
         return move
 
@@ -97,7 +102,7 @@ class YanivAgent:
         # Return the chosen actions
         return phase1, phase2, phase3
 
-    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=False):
+    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=debug):
         if debug:
             print("Starting turn...")
         state_tensor = game.to_tensor(hand, other, game.top_cards)
@@ -134,8 +139,9 @@ class YanivAgent:
 
         # Penalize inefficient discards
         # if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
-        phase_2_intermediate_loss -= max(
-            (max(move_values.values()) - move_values[tuple(move_played)]), 5)
+        phase_2_intermediate_loss -= 3 * \
+            (max((max(move_values.values()) -
+             move_values[tuple(move_played)]), 5))
 
         # print(phase_2_intermediate_loss)
 
@@ -144,9 +150,9 @@ class YanivAgent:
             c1, v1 = game.completes_move(hc, card)
             c2, v2 = game.completes_move(hand, card)
             if (c1 and c2) and (v1 < v2):
-                phase_2_intermediate_loss -= 5
+                phase_2_intermediate_loss -= 15
             elif c1 and not c2:
-                phase_2_intermediate_loss -= 5
+                phase_2_intermediate_loss -= 15
             elif not c1 and c2:
                 phase_2_intermediate_loss += 5
             else:
@@ -209,6 +215,7 @@ class YanivAgent:
             phase_3_intermediate_loss = 0
 
         # Apply episodes with calculated intermediate losses
+        # phase_2_intermediate_loss = 0
         self.model_phase1.add_episode(
             state_tensor, a1, phase_1_intermediate_loss)
         self.model_phase2.add_episode(

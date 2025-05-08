@@ -21,11 +21,17 @@ def set_seed():
     torch.backends.cudnn.benchmark = False
 
 
+t1 = "linear-vs-linear"
+t2 = "linear-vs-multi"
+t3 = "multi-vs-multi"
+
+
 class CornerCases:
     def __init__(self):
         # Create an agent and set epsilon to 0.0
         set_seed()
-        agent = YanivAgent("linear-vs-linear", STATE_SIZE, MDQN, MDQN, MDQN)
+        # agent = YanivAgent(t1, STATE_SIZE, M, M, M)
+        agent = YanivAgent(t3, STATE_SIZE, MDQN, MDQN, MDQN)
         agent.load_models(2)
         agent.epsilon = 0.0
 
@@ -165,9 +171,15 @@ class CornerCases:
         """
 
         # Set the cards for the player, opponent, and top card
-        cards = ["Ace of Hearts", "Two of Hearts", "Seven of Diamonds"]
-        opp_cards = ["Queen of Hearts", "Jack of Clubs", "Ten of Diamonds"]
-        top_card = ["King of Spades"]
+        # cards = ["Ace of Hearts", "Two of Hearts", "Seven of Diamonds"]
+        # opp_cards = ["Queen of Hearts", "Jack of Clubs", "Ten of Diamonds"]
+        # top_card = ["King of Spades"]
+
+        cards = ["Six of Clubs", "King of Clubs", "Ace of Hearts",
+                 "Three of Diamonds", "Queen of Diamonds"]
+        opp_cards = ["Four of Clubs", "Nine of Clubs",
+                     "Seven of Spades", "Nine of Diamonds"]
+        top_card = ["Seven of Hearts"]
 
         # Generate the state
         state = self.generate_state(cards, opp_cards, top_card)
@@ -176,9 +188,8 @@ class CornerCases:
         state.curr_idx = num_turns
 
         result = (self.agent.choose_action_phase2(
-            state, state.player_1_hand, state.player_2_hand, state.top_cards))
-        print(result)
-        return (POSSIBLE_MOVES[int(result)])
+            state, state.player_1_hand, state.player_2_hand, state.top_cards, True))
+        return [cards[i] for i in POSSIBLE_MOVES[int(result)]]
 
 # Tests
 
@@ -213,7 +224,8 @@ def test_pick_up_higher():
         # Create the corner cases object
         cornerCases = CornerCases()
         result = (cornerCases.run_pick_up_higher(num_turns=x))
-        print("Turn:", x, "Result:", state.card_to_name(result))
+        print("Turn:", x, "Result:", "Deck" if result ==
+              52 else state.card_to_name(result))
 
 
 def test_pick_up_card():
