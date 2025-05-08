@@ -249,7 +249,7 @@ class GameState:
         """
         return np.nonzero(hand)[0]
 
-    def get_features(self, hand: np.ndarray, other_hand: np.ndarray, top_cards : list) -> np.ndarray[int]:
+    def get_features(self, hand: np.ndarray, other_hand: np.ndarray, top_cards: list) -> np.ndarray[int]:
         """
         The features of the game known to player with hand {hand} playing against opponent with hand {other_hand}
 
@@ -273,14 +273,14 @@ class GameState:
         top_2_completes, move_value2 = self.completes_move(
             hand, top_cards[1])
         top2_value = self.card_value(top_cards[1])
-        print(f"""
-            Hand is {self.hand_to_cards(hand)}, 
-            Top cardsss: {self.hand_to_cards(top_cards)}, 
-            Self.top_cards: {[self.card_to_name(card) for card in self.top_cards]},
-            Top 1 completes: {top_1_completes}, Move value 1: {move_value1}, 
-            Top 2 completes: {top_2_completes}, Move value 2: {move_value2}
-            Other player num cards: {other_player_num_cards},
-            """)
+        # print(f"""
+        #     Hand is {self.hand_to_cards(hand)},
+        #     Top cardsss: {self.hand_to_cards(top_cards)},
+        #     Self.top_cards: {[self.card_to_name(card) for card in self.top_cards]},
+        #     Top 1 completes: {top_1_completes}, Move value 1: {move_value1},
+        #     Top 2 completes: {top_2_completes}, Move value 2: {move_value2}
+        #     Other player num cards: {other_player_num_cards},
+        #     """)
         return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn],
                                vals, [top_1_completes, move_value1, top1_value, top_2_completes, move_value2, top2_value]])
 
@@ -410,7 +410,7 @@ class GameState:
                 hand[nz] -= 1
             counter += 1
 
-        if len(cards) >= 3 and cards[0] == cards[1] - 1: # Playing a straight
+        if len(cards) >= 3 and cards[0] == cards[1] - 1:  # Playing a straight
             self.top_cards = [self.top_cards[0], self.top_cards[-1]]
 
         return
@@ -433,12 +433,13 @@ class GameState:
         else:
             card_drawn = draw_idx
         try:
-            # print("Trying to draw", self.card_to_name(card_drawn)) 
+            # print("Trying to draw", self.card_to_name(card_drawn))
             if card_drawn in self.tc_holder:
                 self.tc_holder = []
             return card_drawn
         except:
-            print(self.hand_to_cards(hand), self.tc_holder, self.top_cards, cards, draw_idx)
+            print(self.hand_to_cards(hand), self.tc_holder,
+                  self.top_cards, cards, draw_idx)
             raise Exception
 
     def completes_move(self, hand: np.ndarray[int], card: int) -> tuple[bool, int]:

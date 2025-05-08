@@ -11,17 +11,8 @@ import random
 from game.nets import *
 import sys
 
-def set_seed():
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
-    torch.cuda.manual_seed_all(42)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
 
-def train_models(model_comb, NUM_EPISODES=1000):
-
-    set_seed()
+def train_models(model_comb, NUM_EPISODES=1000, track=False):
 
     if not os.path.exists(MODEL_DIR):
         os.makedirs(MODEL_DIR)
@@ -52,7 +43,8 @@ def train_models(model_comb, NUM_EPISODES=1000):
         print(f"Episode {episode}", '\r', end='')
         # Randomly select True or False
         if random.choice([True, False]):
-            if run_game(agent1, agent2):
+            win, _ = run_game(agent1, agent2)
+            if win:
                 agent1.train(1)
                 agent2.train(-1)
                 w1 += 1
@@ -61,7 +53,8 @@ def train_models(model_comb, NUM_EPISODES=1000):
                 agent2.train(1)
                 w2 += 1
         else:
-            if run_game(agent2, agent1):
+            win, _ = run_game(agent2, agent1)
+            if win:
                 agent1.train(-1)
                 agent2.train(1)
                 w2 += 1

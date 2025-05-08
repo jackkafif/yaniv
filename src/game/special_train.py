@@ -12,6 +12,7 @@ import sys
 import matplotlib.pyplot as plt
 import matplotlib
 
+
 def train_models(NUM_EPISODES=1000):
 
     if not os.path.exists(MODEL_DIR):
@@ -44,7 +45,8 @@ def train_models(NUM_EPISODES=1000):
                 agent2.epsilon = 0.4
             # Randomly select True or False
             if random.choice([True, False]):
-                if run_game(agent1, agent2):
+                win, _ = run_game(agent1, agent2)
+                if win:
                     agent1.train(1)
                     agent2.train(-1)
                     w1 += 1
@@ -53,7 +55,8 @@ def train_models(NUM_EPISODES=1000):
                     agent2.train(1)
                     w2 += 1
             else:
-                if run_game(agent2, agent1):
+                win, _ = run_game(agent2, agent1)
+                if win:
                     agent1.train(-1)
                     agent2.train(1)
                     w2 += 1
@@ -70,19 +73,22 @@ def train_models(NUM_EPISODES=1000):
                 agent2.save_models(2)
 
             if episode % 100 == 0:
-                print(f"Episode {episode}: Agent 1 Win Rate: {win_rates_1[-1]:.2f}, Agent 2 Win Rate: {win_rates_2[-1]:.2f}")
+                print(
+                    f"Episode {episode}: Agent 1 Win Rate: {win_rates_1[-1]:.2f}, Agent 2 Win Rate: {win_rates_2[-1]:.2f}")
 
         print(f"Final Win Rates: Agent 1: {w1}, Agent 2: {w2}")
-        print(f"Agent 1 Win Rate: {w1 / NUM_EPISODES:.2f}, Agent 2 Win Rate: {w2 / NUM_EPISODES:.2f}")
+        print(
+            f"Agent 1 Win Rate: {w1 / NUM_EPISODES:.2f}, Agent 2 Win Rate: {w2 / NUM_EPISODES:.2f}")
         if w1 < w2:
             agent1 = agent2
         else:
             agent1 = agent1
         agent2 = YanivAgent(state_size=STATE_SIZE)
-    
+
     agent1.save_models(1)
     # agent2.save_models(2)
     return (w1, win_rates_1), (w2, win_rates_2), agent1, agent2
+
 
 if __name__ == "__main__":
     episodes = int(sys.argv[1]) if len(sys.argv) > 1 else 1000

@@ -22,16 +22,19 @@ def compare(agent1, agent2, num_trials=10, show=False):
     if show:
         agent1_total_wins = []
         total_games = []
+        total_game_length = []
 
     for i in range(num_trials):
         print(i)
-        if run_game(agent1, agent2):
+        win, turns = run_game(agent1, agent2)
+        if win:
             wins_agent1 += 1
         else:
             wins_agent2 += 1
         if show:
             agent1_total_wins.append(wins_agent1)
             total_games.append(wins_agent1 + wins_agent2)
+            total_game_length.append(turns)
     if show:
         # print(total_games)
         # print(agent1_total_wins)
@@ -41,13 +44,21 @@ def compare(agent1, agent2, num_trials=10, show=False):
         plt.title("Agent 1 Wins Over Time")
         plt.show()
 
+        plt.plot(total_games, total_game_length)
+        plt.xlabel("Total Games")
+        plt.ylabel("Game Length")
+        plt.title("Game Length Over Time")
+        plt.show()
+
     return wins_agent1, wins_agent2
 
 
 agent1 = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
 agent1.load_models(1)
+agent1.epsilon = 0
 
 agent2 = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
 agent2.load_models(2)
+agent2.epsilon = 0
 
 compare(agent1, agent2, num_trials=100, show=True)

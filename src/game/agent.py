@@ -171,14 +171,14 @@ class YanivAgent:
                     played.append(game.card_to_name(nz))
                 counter += 1
 
-        print(f"""
-              Top card values: {top_card_values}
-              Top cards: {game.tc_holder}
-              Hand: {game.hand_to_cards(hc)}
-              Discarded cards: {played}
-              Drawn card: {game.card_to_name(a3) if a3 != 52 else "deck"}
-              Phase 3 intermediate loss: {phase_3_intermediate_loss}
-              """)
+        # print(f"""
+        #       Top card values: {top_card_values}
+        #       Top cards: {game.tc_holder}
+        #       Hand: {game.hand_to_cards(hc)}
+        #       Discarded cards: {played}
+        #       Drawn card: {game.card_to_name(a3) if a3 != 52 else "deck"}
+        #       Phase 3 intermediate loss: {phase_3_intermediate_loss}
+        #       """)
         # phase_3_intermediate_loss = 0
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)
