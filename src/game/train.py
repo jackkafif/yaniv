@@ -10,6 +10,7 @@ import random
 from game.nets import *
 import sys
 
+
 def train_models(NUM_EPISODES=1000):
 
     if not os.path.exists(MODEL_DIR):
@@ -36,7 +37,7 @@ def train_models(NUM_EPISODES=1000):
     for episode in range(1, NUM_EPISODES + 1):
         print(f"Episode {episode}", '\r', end='')
         # Randomly select True or False
-        if episode == NUM_EPISODES // 2:
+        if episode % 750 == 0:
             agent1.epsilon = 1.0
             agent2.epsilon = 1.0
             w1 = 0
@@ -70,13 +71,17 @@ def train_models(NUM_EPISODES=1000):
             agent2.save_models(2)
 
         if episode % 100 == 0:
-            print(f"Episode {episode}: Agent 1 Win Rate: {win_rates_1[-1]:.2f}, Agent 2 Win Rate: {win_rates_2[-1]:.2f}")
+            print(
+                f"Episode {episode}: Agent 1 Win Rate: {win_rates_1[-1]:.2f}, Agent 2 Win Rate: {win_rates_2[-1]:.2f}")
 
     print(f"Final Win Rates: Agent 1: {w1}, Agent 2: {w2}")
-    print(f"Agent 1 Win Rate: {w1 / NUM_EPISODES:.2f}, Agent 2 Win Rate: {w2 / NUM_EPISODES:.2f}")
-        
+    print(
+        f"Agent 1 Win Rate: {w1 / NUM_EPISODES:.2f}, Agent 2 Win Rate: {w2 / NUM_EPISODES:.2f}")
+
     return (w1, win_rates_1), (w2, win_rates_2), agent1, agent2
 
+
 if __name__ == "__main__":
-    (w1, _), (w2, _), _, _ = train_models(int(sys.argv[1]) if len(sys.argv) > 1 else 1000)
+    (w1, _), (w2, _), _, _ = train_models(
+        int(sys.argv[1]) if len(sys.argv) > 1 else 10000)
     print(f"Agent 1 won {w1} to 2's {w2}")

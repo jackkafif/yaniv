@@ -79,6 +79,8 @@ class YanivAgent:
                 state.to_tensor(hand, other).unsqueeze(0))
             q_vals = q_vals.squeeze(0)
             q_vals[valid_draws_mask < 1] = -np.inf
+            print(q_vals)
+            # print(valid_draws)
         return int(torch.argmax(q_vals))
 
     def choose_turn_moves(self, state: GameState, hand: np.ndarray, other: np.ndarray):
@@ -110,14 +112,15 @@ class YanivAgent:
             if won:
                 reward = 1
             else:
-                reward = -10 if a1 == 1 else -1  # Strong penalty for premature Yaniv
+                reward = -50 if a1 == 1 else -1  # Strong penalty for premature Yaniv
             self.model_phase1.add_episode(state_tensor, a1, reward)
             return True, won
 
         move_played = list(discard_indices)
 
         valid_moves = list(game.valid_moves(hand))
-        move_values = {POSSIBLE_MOVES[valid_moves[i]]: game.move_value(hand, POSSIBLE_MOVES[valid_moves[i]]) for i in range(len(valid_moves))}
+        move_values = {POSSIBLE_MOVES[valid_moves[i]]: game.move_value(
+            hand, POSSIBLE_MOVES[valid_moves[i]]) for i in range(len(valid_moves))}
 
         # Penalize inefficient discards
         if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
@@ -130,16 +133,26 @@ class YanivAgent:
             if min(top_card_values) <= 3:
                 phase_3_intermediate_loss -= 15  # Penalize skipping low-value visible card
         else:
-            chosen_card_idx = 1 if a3 == 2 else 0
-            chosen_card = game.top_cards[chosen_card_idx]
-            other_card = game.top_cards[1 - chosen_card_idx]
+            if len(game.top_cards) > 1:
 
-            if game.completes_move(hand, chosen_card):
-                phase_3_intermediate_loss += 10  # Reward drawing card completing a combination
-            elif game.card_value(chosen_card) > game.card_value(other_card):
-                phase_3_intermediate_loss -= 15  # Penalize taking higher-value card
+                chosen_card_idx = 1 if a3 == 2 else 0
+
+                chosen_card = game.top_cards[chosen_card_idx]
+                other_card = game.top_cards[1 - chosen_card_idx]
+
+                if game.completes_move(hand, chosen_card):
+                    phase_3_intermediate_loss += 10  # Reward drawing card completing a combination
+                elif game.card_value(chosen_card) > game.card_value(other_card):
+                    phase_3_intermediate_loss -= 15  # Penalize taking higher-value card
+                else:
+                    # Slight reward for drawing low-value card
+                    phase_3_intermediate_loss += 5 if game.card_value(
+                        chosen_card) <= 3 else 0
             else:
-                phase_3_intermediate_loss += 5 if game.card_value(chosen_card) <= 3 else 0  # Slight reward for drawing low-value card
+                if game.completes_move(hand, game.top_cards[0]):
+                    phase_3_intermediate_loss += 10
+                if game.card_value(game.top_cards[0]) <= 3:
+                    phase_3_intermediate_loss += 5
 
         # phase_3_intermediate_loss = 0
         # Reward/penalize changes in hand value after move
@@ -160,9 +173,12 @@ class YanivAgent:
             phase_2_intermediate_loss -= 10  # Penalize increasing hand value
 
         # Apply episodes with calculated intermediate losses
-        self.model_phase1.add_episode(state_tensor, a1, phase_1_intermediate_loss)
-        self.model_phase2.add_episode(state_tensor, a2, phase_2_intermediate_loss)
-        self.model_phase3.add_episode(state_tensor, a3, phase_3_intermediate_loss)
+        self.model_phase1.add_episode(
+            state_tensor, a1, phase_1_intermediate_loss)
+        self.model_phase2.add_episode(
+            state_tensor, a2, phase_2_intermediate_loss)
+        self.model_phase3.add_episode(
+            state_tensor, a3, phase_3_intermediate_loss)
 
         return False, False
 

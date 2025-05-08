@@ -41,7 +41,7 @@ class GameState:
         self.cards_played = []
         self.over = False
 
-    def to_tensor(self, hand : np.ndarray, other : np.ndarray):
+    def to_tensor(self, hand: np.ndarray, other: np.ndarray):
         return FloatTensor(self.get_features(hand, other))
 
     def reset(self) -> GameState:
@@ -534,7 +534,8 @@ class GameState:
             list[int] : Valid draw indices for (-1 for deck, 0 for first index of discard, 1 for second index of discard)
         """
         draws = [0]
-        for i in range(1, len(self.top_cards)):
+        # print(self.top_cards)
+        for i in range(len(self.top_cards)):
             draws.append(i + 1)
         return draws
 
