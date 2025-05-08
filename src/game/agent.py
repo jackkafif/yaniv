@@ -97,7 +97,7 @@ class YanivAgent:
         # Return the chosen actions
         return phase1, phase2, phase3
 
-    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=False):
+    def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=True):
         if debug:
             print("Starting turn...")
         state_tensor = game.to_tensor(hand, other, game.top_cards)
@@ -134,14 +134,22 @@ class YanivAgent:
 
         # Penalize inefficient discards
         # if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
-        phase_2_intermediate_loss -= (max(move_values.values()) - move_values[tuple(move_played)])
+        phase_2_intermediate_loss -= max((max(move_values.values()) - move_values[tuple(move_played)]), 5)
 
         # print(phase_2_intermediate_loss)
 
         for card in game.tc_holder:
             # Check if discarding a card that completes a combination with the card from discard
-            if game.completes_move(hc, card)[0] and not game.completes_move(hand, card)[0]:
-                phase_2_intermediate_loss -= 10
+            c1, v1 = game.completes_move(hc, card)
+            c2, v2 = game.completes_move(hand, card)
+            if (c1 and c2) and (v1 < v2):
+                phase_2_intermediate_loss -= 5
+            elif c1 and not c2:
+                phase_2_intermediate_loss -= 5
+            elif not c1 and c2:
+                phase_2_intermediate_loss += 5
+            else:
+                phase_2_intermediate_loss += 0
 
         # print(phase_2_intermediate_loss)
 
