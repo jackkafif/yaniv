@@ -42,8 +42,8 @@ class GameState:
         self.cards_played = []
         self.over = False
 
-    def to_tensor(self, hand: np.ndarray, other: np.ndarray):
-        return FloatTensor(self.get_features(hand, other))
+    def to_tensor(self, hand: np.ndarray, other: np.ndarray, top_cards: list[int]) -> FloatTensor:
+        return FloatTensor(self.get_features(hand, other, top_cards))
 
     def reset(self) -> GameState:
         """
@@ -249,7 +249,7 @@ class GameState:
         """
         return np.nonzero(hand)[0]
 
-    def get_features(self, hand: np.ndarray, other_hand: np.ndarray) -> np.ndarray[int]:
+    def get_features(self, hand: np.ndarray, other_hand: np.ndarray, top_cards : list) -> np.ndarray[int]:
         """
         The features of the game known to player with hand {hand} playing against opponent with hand {other_hand}
 
@@ -262,18 +262,25 @@ class GameState:
         """
         other_player_num_cards = len(other_hand)
         turn = self.turn
-        top_cards = self.get_top_cards()
         valid_moves = self.valid_moves(hand)
         vals = self.get_moves_values(hand, valid_moves).flatten()
         top_1_completes, move_value1 = self.completes_move(
-            hand, self.top_cards[0])
-        top1_value = self.card_value(self.top_cards[0])
-        if len(self.top_cards) == 1:
+            hand, top_cards[0])
+        top1_value = self.card_value(top_cards[0])
+        if len(top_cards) == 1:
             return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn],
                                    vals, [top_1_completes, move_value1, top1_value, 0, 0, 0]])
         top_2_completes, move_value2 = self.completes_move(
-            hand, self.top_cards[1])
-        top2_value = self.card_value(self.top_cards[1])
+            hand, top_cards[1])
+        top2_value = self.card_value(top_cards[1])
+        print(f"""
+            Hand is {self.hand_to_cards(hand)}, 
+            Top cardsss: {self.hand_to_cards(top_cards)}, 
+            Self.top_cards: {[self.card_to_name(card) for card in self.top_cards]},
+            Top 1 completes: {top_1_completes}, Move value 1: {move_value1}, 
+            Top 2 completes: {top_2_completes}, Move value 2: {move_value2}
+            Other player num cards: {other_player_num_cards},
+            """)
         return np.concatenate([hand.flatten(), top_cards, [other_player_num_cards, turn],
                                vals, [top_1_completes, move_value1, top1_value, top_2_completes, move_value2, top2_value]])
 
