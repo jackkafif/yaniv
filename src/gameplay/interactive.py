@@ -78,20 +78,21 @@ def play(visual=False, i=0):
                     "Input 0 to draw from deck, 1 to draw first index of discard, 2 for second: ")
                 try:
                     if draw in ["0", "1", "2"]:
+                        cp = state.player_1_hand.copy()
+                        state.play(state.player_1_hand, indices)
+                        draw = int(draw)
+                        if draw == 0:
+                            draw = state.draw(cp, indices, 52)
+                        else:
+                            tcs = state.get_top_cards().nonzero()[0]
+                            draw = state.draw(cp, indices, tcs[draw-1])
+                        state.player_1_hand[draw] += 1
                         break
                     print("Invalid draw, please try again ")
                 except:
                     print("Invalid draw, please try again ")
 
             # print(indices)
-            cp = state.player_1_hand.copy()
-            state.play(state.player_1_hand, indices)
-            draw = int(draw)
-            if draw == 0:
-                draw = state.draw(cp, indices, 52)
-            else:
-                draw = state.draw(cp, indices, indices[draw - 1])
-            state.player_1_hand[state.draw(cp, indices, int(draw))] += 1
 
             # state.play(state.player_2_hand, move)
             # state.draw(cp2, move, int(draw))
