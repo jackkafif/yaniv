@@ -85,6 +85,11 @@ def play(visual=False, i=0):
             # print(indices)
             cp = state.player_1_hand.copy()
             state.play(state.player_1_hand, indices)
+            draw = int(draw)
+            if draw == 0:
+                draw = state.draw(cp, indices, 52)
+            else:
+                draw = state.draw(cp, indices, indices[draw - 1])
             state.player_1_hand[state.draw(cp, indices, int(draw))] += 1
 
             # state.play(state.player_2_hand, move)

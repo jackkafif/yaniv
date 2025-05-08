@@ -11,13 +11,13 @@ import os
 
 
 class YanivAgent:
-    def __init__(self, state_size=STATE_SIZE):
+    def __init__(self, state_size=STATE_SIZE, M1 = MDQN, M2 = MDQN, M3 = MDQN):
 
         self.state_size = state_size
 
-        self.model_phase1 = MDQN(state_size, PHASE1_ACTION_SIZE)
-        self.model_phase2 = MDQN(state_size, PHASE2_ACTION_SIZE)
-        self.model_phase3 = MDQN(state_size, PHASE3_ACTION_SIZE)
+        self.model_phase1 = M1(state_size, PHASE1_ACTION_SIZE)
+        self.model_phase2 = M2(state_size, PHASE2_ACTION_SIZE)
+        self.model_phase3 = M3(state_size, PHASE3_ACTION_SIZE)
 
         self.epsilon = 1.0
         self.epsilon_decay = 0.995
@@ -78,7 +78,7 @@ class YanivAgent:
         move = int(torch.argmax(q_vals))
         return move
 
-    def choose_turn_moves(self, state: GameState, hand: np.ndarray, other: np.ndarray):
+    def schoose_turn_moves(self, state: GameState, hand: np.ndarray, other: np.ndarray):
         # Convert the state to a tensor
         state_tensor = state.to_tensor(hand, other)
 
@@ -93,8 +93,7 @@ class YanivAgent:
     def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray):
         state_tensor = game.to_tensor(hand, other)
 
-        a1, a2, a3 = self.choose_turn_moves(game, hand, other)
-        discard_indices = POSSIBLE_MOVES[int(a2)]
+        a1 = self.choose_action_phase1(game, hand, other)
 
         # Initialize intermediate losses/rewards
         phase_1_intermediate_loss = 0
@@ -102,7 +101,7 @@ class YanivAgent:
         phase_3_intermediate_loss = 0
 
         # Check if player calls Yaniv prematurely or correctly
-        if a1 == 1 or len(discard_indices) == 0:
+        if a1 == 1:
             won = game.yaniv(hand, [other])
             if won:
                 reward = 1
@@ -111,17 +110,23 @@ class YanivAgent:
             self.model_phase1.add_episode(state_tensor, a1, reward)
             return True, won
 
+        a2 = self.choose_action_phase2(game, hand, other)
+        discard_indices = POSSIBLE_MOVES[int(a2)]
         move_played = list(discard_indices)
 
         valid_moves = list(game.valid_moves(hand))
         move_values = {POSSIBLE_MOVES[valid_moves[i]]: game.move_value(
             hand, POSSIBLE_MOVES[valid_moves[i]]) for i in range(len(valid_moves))}
+        # Phase 2: Discard cards and draw new card
+        hc = hand.copy()
+        game.play(hand, move_played)
 
         # Penalize inefficient discards
         if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
             phase_2_intermediate_loss -= 20
 
         # Improved phase 3 intermediate loss logic
+        a3 = self.choose_action_phase3(game, hand, other)
         top_card_values = [game.card_value(card) for card in game.top_cards]
         
         if a3 == 52:  # Draw unknown card
@@ -151,9 +156,6 @@ class YanivAgent:
         # Reward/penalize changes in hand value after move
         hand_value_before = game.get_hand_value(hand)
 
-        # Phase 2: Discard cards and draw new card
-        hc = hand.copy()
-        game.play(hand, move_played)
         drawn_card_idx = game.draw(hc, move_played, a3)
         hand[drawn_card_idx] += 1
 

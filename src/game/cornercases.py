@@ -1,6 +1,7 @@
 import torch
 from game.agent import YanivAgent, run_game
 from game.state import GameState
+from game.model import MDQN, M
 from game.globals import *
 import numpy as np
 import os
@@ -29,7 +30,8 @@ class CornerCases:
     def __init__(self):
         # Create an agent and set epsilon to 0.0
         set_seed()
-        agent = YanivAgent()
+        agent = YanivAgent(STATE_SIZE, MDQN, MDQN, MDQN)
+        agent.load_models(2)
         agent.epsilon = 0.0
 
         self.agent = agent
@@ -96,9 +98,9 @@ class CornerCases:
 
         # Set the cards for the player, opponent, and top card
         cards = ["Seven of Hearts", "Seven of Diamonds"]
-        opp_cards = ["Queen of Hearts"]
-        # top_card = ["Five of Spades", "Seven of Spades"]
-        top_card = ["Nine of Spades", "Seven of Spades"]
+        opp_cards = ["Ace of Hearts"]
+        top_card = ["Five of Spades", "Seven of Spades"]
+        # top_card = ["Nine of Spades", "Seven of Spades"]
 
         # Generate the state
         state = self.generate_state(cards, opp_cards, top_card)

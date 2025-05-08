@@ -12,7 +12,7 @@ PHASE3_ACTION_SIZE = phase_3_arr.shape[0] # index 52 is draw from deck, i=0-52 i
 
 # 52 (hand) + 52 (top cards) + 1 (opp hand size) + 1 (turn) + 32 (move values) + 6 (for each top card, if it completes, max move, and value)
 STATE_SIZE = 104 + 2 + 32 + 6
-SAVE_EVERY = 50
+SAVE_EVERY = 100
 MODEL_DIR = "src/agent/"
 
 SUITS = {

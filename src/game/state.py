@@ -426,7 +426,6 @@ class GameState:
             card_drawn = self.deal()
         else:
             card_drawn = draw_idx
-
         try:
             if len(cards) <= 1:
                 self.top_cards = [nzs[cards[0]]]

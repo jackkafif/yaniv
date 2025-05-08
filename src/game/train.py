@@ -2,6 +2,7 @@
 
 import torch
 from game.agent import YanivAgent, run_game
+from game.model import MDQN, M
 from game.state import GameState
 from game.globals import *
 import numpy as np
@@ -16,8 +17,8 @@ def train_models(NUM_EPISODES=1000):
     if not os.path.exists(MODEL_DIR):
         os.makedirs(MODEL_DIR)
 
-    agent1 = YanivAgent(state_size=STATE_SIZE)
-    agent2 = YanivAgent(state_size=STATE_SIZE)
+    agent1 = YanivAgent(STATE_SIZE, M, M, M)
+    agent2 = YanivAgent(STATE_SIZE, MDQN, MDQN, MDQN)
     agent1.epsilon = 1.0
     agent2.epsilon = 1.0
 
@@ -37,12 +38,6 @@ def train_models(NUM_EPISODES=1000):
     for episode in range(1, NUM_EPISODES + 1):
         print(f"Episode {episode}", '\r', end='')
         # Randomly select True or False
-        if episode % 750 == 0:
-            # agent1.epsilon = 1.0
-            # agent2.epsilon = 1.0
-            w1 = 0
-            w2 = 0
-            e = 1
         if random.choice([True, False]):
             if run_game(agent1, agent2):
                 agent1.train(1)
@@ -69,6 +64,9 @@ def train_models(NUM_EPISODES=1000):
             print("Saving models...")
             agent1.save_models(1)
             agent2.save_models(2)
+            w1 = 0
+            w2 = 0
+            e = 1
 
         if episode % 100 == 0:
             print(
