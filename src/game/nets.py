@@ -10,15 +10,15 @@ class MultipleLayers(nn.Module):
         self.path = "multilayer"
         self.linear1 = nn.Linear(input_size, input_size * 2)
         self.bn1 = nn.LayerNorm(input_size * 2)
-        self.linear2 = nn.Linear(input_size * 2, input_size)
-        self.bn2 = nn.LayerNorm(input_size)
-        self.linear3 = nn.Linear(input_size, output_size)
+        self.linear2 = nn.Linear(input_size * 2, input_size * 4)
+        self.bn2 = nn.LayerNorm(input_size * 4)
+        self.linear3 = nn.Linear(input_size * 4, output_size)
         self.relu = nn.ReLU()
 
     def forward(self, x):
         x = self.linear1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
+        # x = self.bn1(x)
+        # x = self.relu(x)
         x = self.linear2(x)
         x = self.bn2(x)
         x = self.relu(x)

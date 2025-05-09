@@ -14,6 +14,7 @@ d = False
 # debug = True
 # d = True
 
+p2_state_size = 144
 class YanivAgent:
     def __init__(self, model_dir, state_size=STATE_SIZE, M1=MDQN, M2=MDQN, M3=MDQN):
 
@@ -22,7 +23,7 @@ class YanivAgent:
         self.model_dir = model_dir
 
         self.model_phase1 = M1(state_size, PHASE1_ACTION_SIZE)
-        self.model_phase2 = M2(state_size, PHASE2_ACTION_SIZE)
+        self.model_phase2 = M2(p2_state_size, PHASE2_ACTION_SIZE)
         self.model_phase3 = M3(state_size, PHASE3_ACTION_SIZE)
 
         self.epsilon = 1.0
@@ -68,8 +69,9 @@ class YanivAgent:
         if random.random() < self.epsilon:
             return random.choice(np.where(valid_moves > 0)[0])
         with torch.no_grad():
-            q_vals = self.model_phase2.model(
-                state.to_tensor(hand, other, top_cards).unsqueeze(0))
+            feats = state.get_features_2(hand, other, top_cards)
+            print(feats.shape)
+            q_vals = self.model_phase2.model(feats)
             q_vals = q_vals.squeeze(0)
             q_vals[valid_moves.T <= 0] = -np.inf
         if debug:

@@ -146,12 +146,13 @@ class CornerCases:
         # opp_cards = ["Four of Clubs", "Nine of Clubs", "Seven of Spades", "Nine of Diamonds"]
         # top_card = ["Seven of Hearts"]
 
-        cards = ["Six of Clubs", "King of Clubs", "Ace of Spades", "Ace of Hearts"]
+        cards = ["Ace of Clubs", "King of Clubs", "Ace of Hearts", "Ace of Diamonds", "King of Diamonds"]
         opp_cards = ["Four of Clubs", "Seven of Clubs", "Nine of Clubs", "Three of Diamonds"]
         top_card = ["Three of Diamonds"]
 
         # Generate the state
         state = self.generate_state(cards, opp_cards, top_card)
+        print(state.player_1_hand)
 
         # Set the number of turns
         state.curr_idx = num_turns
@@ -217,15 +218,7 @@ def test_play_high_card():
     print("Result:", result)
 
 if __name__ == "__main__":
-    print("Testing Yaniv Calling...")
-    test_yaniv_calling()
-    print("Finished testing Yaniv Calling")
-    print("Testing Pick Up Higher...")
-    test_pick_up_higher()
-    print("Finished testing Pick Up Higher")
-    print("Testing Pick Up Card...")
-    test_pick_up_card()
-    print("Finished testing Pick Up Card")
-    print("Testing Play High Card...")
+    # test_yaniv_calling()
+    # test_pick_up_higher()
+    # test_pick_up_card()
     test_play_high_card()
-    print("Finished testing Play High Card")

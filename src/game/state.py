@@ -248,6 +248,17 @@ class GameState:
             list[int] : The list of indices of the cards in the hand
         """
         return np.nonzero(hand)[0]
+    
+    def get_features_2(self, hand: np.ndarray, other_hand: np.ndarray, top_cards: list) -> np.ndarray[int]:
+        other_player_num_cards = len(other_hand)
+        valid_moves = self.valid_moves(hand)
+        top_cards_tensor = np.zeros(52)
+        for card in top_cards:
+            top_cards_tensor[card] += 1
+        vals = self.get_moves_values(hand, valid_moves).flatten()
+        vals = vals**2
+        x = FloatTensor(np.concatenate([hand.flatten(), top_cards_tensor, [other_player_num_cards], vals])).unsqueeze(0)
+        return x
 
     def get_features(self, hand: np.ndarray, other_hand: np.ndarray, top_cards: list) -> np.ndarray[int]:
         """
@@ -267,10 +278,19 @@ class GameState:
         for card in top_cards:
             top_cards_tensor[card] += 1
         vals = self.get_moves_values(hand, valid_moves).flatten()
+        vals = vals**2
         top_1_completes, move_value1 = self.completes_move(
             hand, top_cards[0])
         top1_value = self.card_value(top_cards[0])
+        # print(f"TC: {top_cards}")
         if len(top_cards) == 1:
+            # print(f"""
+            #     Hand is {self.hand_to_cards(hand)},
+            #     Top cards: {self.hand_to_cards(top_cards)},
+            #     Top 1 completes: {top_1_completes}, Move value 1: {move_value1},
+            #     Move Values: {vals},
+            #     Other player num cards: {other_player_num_cards},
+            #     """)
             return np.concatenate([hand.flatten(), top_cards_tensor, [other_player_num_cards, turn],
                                    vals, [top_1_completes, move_value1, top1_value, 0, 0, 0]])
         top_2_completes, move_value2 = self.completes_move(
@@ -278,10 +298,10 @@ class GameState:
         top2_value = self.card_value(top_cards[1])
         # print(f"""
         #     Hand is {self.hand_to_cards(hand)},
-        #     Top cardsss: {self.hand_to_cards(top_cards)},
-        #     Self.top_cards: {[self.card_to_name(card) for card in self.top_cards]},
+        #     Top cards: {self.hand_to_cards(top_cards)},
         #     Top 1 completes: {top_1_completes}, Move value 1: {move_value1},
-        #     Top 2 completes: {top_2_completes}, Move value 2: {move_value2}
+        #     Top 2 completes: {top_2_completes}, Move value 2: {move_value2},
+        #     Move Values: {vals},
         #     Other player num cards: {other_player_num_cards},
         #     """)
         return np.concatenate([hand.flatten(), top_cards_tensor, [other_player_num_cards, turn],
@@ -513,15 +533,18 @@ class GameState:
                     card) + self.card_value(card - 1) + self.card_value(card - 2)
 
         # Check for set (2 or more cards of the same rank)
+        cv = self.card_value(card)
         if hand[card - 13] == 1:
             set = True
-            set_value += self.card_value(card) + self.card_value(card + 13)
+            set_value += cv
         if hand[card - 26] == 1:
             set = True
-            set_value += self.card_value(card) + self.card_value(card + 13)
+            set_value += cv
         if hand[card - 39] == 1:
             set = True
-            set_value += self.card_value(card) + self.card_value(card + 13)
+            set_value += + cv
+        if set:
+            set_value += cv
 
         # If set & straight, return the higher value
         if set and straight:
