@@ -139,9 +139,10 @@ class YanivAgent:
 
         # Penalize inefficient discards
         # if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
-        phase_2_intermediate_loss -= 3 * \
-            (max((max(move_values.values()) -
-             move_values[tuple(move_played)]), 5))
+        dif = (max(move_values.values()) -
+               move_values[tuple(move_played)])
+        if dif > 0:
+            phase_2_intermediate_loss -= 3 * (max(dif, 5))
 
         # print(phase_2_intermediate_loss)
 
