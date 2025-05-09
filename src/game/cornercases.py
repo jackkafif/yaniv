@@ -28,9 +28,9 @@ class CornerCases:
     def __init__(self):
         # Create an agent and set epsilon to 0.0
         set_seed()
-        # agent = YanivAgent(t1, STATE_SIZE, M, M, M)
-        agent = YanivAgent(t3, STATE_SIZE, MDQN, MDQN, MDQN)
-        agent.load_models(2)
+        agent = YanivAgent(t1, STATE_SIZE, M, M, M)
+        # agent = YanivAgent(t3, STATE_SIZE, MDQN, MDQN, MDQN)
+        agent.load_models(1)
         agent.epsilon = 0.0
 
         self.agent = agent
@@ -142,9 +142,13 @@ class CornerCases:
         # opp_cards = ["Queen of Hearts", "Jack of Clubs", "Ten of Diamonds"]
         # top_card = ["King of Spades"]
 
-        cards = ["Six of Clubs", "King of Clubs", "Ace of Hearts", "Three of Diamonds", "Queen of Diamonds"]
-        opp_cards = ["Four of Clubs", "Nine of Clubs", "Seven of Spades", "Nine of Diamonds"]
-        top_card = ["Seven of Hearts"]
+        # cards = ["Six of Clubs", "King of Clubs", "Ace of Hearts", "Three of Diamonds", "Queen of Diamonds"]
+        # opp_cards = ["Four of Clubs", "Nine of Clubs", "Seven of Spades", "Nine of Diamonds"]
+        # top_card = ["Seven of Hearts"]
+
+        cards = ["Six of Clubs", "King of Clubs", "Ace of Spades", "Ace of Hearts"]
+        opp_cards = ["Four of Clubs", "Seven of Clubs", "Nine of Clubs", "Three of Diamonds"]
+        top_card = ["Three of Diamonds"]
 
         # Generate the state
         state = self.generate_state(cards, opp_cards, top_card)

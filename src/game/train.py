@@ -39,6 +39,7 @@ def train_models(model_comb, NUM_EPISODES=1000, track=False):
     w2 = 0
     win_rates_1 = []
     win_rates_2 = []
+    turns_taken = []
     for episode in range(1, NUM_EPISODES + 1):
         print(f"Episode {episode}", '\r', end='')
         # Randomly select True or False
@@ -65,6 +66,7 @@ def train_models(model_comb, NUM_EPISODES=1000, track=False):
         win_rates_1.append(w1 / e)
         win_rates_2.append(w2 / e)
         e += 1
+        turns_taken.append(turns)
         print(f"Episode {episode} took {turns}", '\r', end='')
 
         if episode % SAVE_EVERY == 0:

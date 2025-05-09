@@ -56,8 +56,8 @@ class YanivAgent:
         with torch.no_grad():
             q_vals = self.model_phase1.model(
                 state.to_tensor(hand, other, top_cards).unsqueeze(0))
-        if debug:
-            print(f"Phase 1 Q values: {q_vals}")
+        # if debug:
+        #     print(f"Phase 1 Q values: {q_vals}")
         return int(torch.argmax(q_vals))
 
     def choose_action_phase2(self, state: GameState, hand: np.ndarray, other: np.ndarray, top_cards: list, debug=debug):
@@ -84,8 +84,8 @@ class YanivAgent:
                 tensor)
             q_vals = q_vals.squeeze(0)
             q_vals[valid_draws_mask == 0] = -np.inf
-        if debug:
-            print(f"Phase 3 Q values: {q_vals}")
+        # if debug:
+        #     print(f"Phase 3 Q values: {q_vals}")
         move = int(torch.argmax(q_vals))
         return move
 
@@ -114,104 +114,91 @@ class YanivAgent:
         phase_3_intermediate_loss = 0
 
         # Check if player calls Yaniv prematurely or correctly
+        # Noam was here
         if a1 == 1:
             won = game.yaniv(hand, [other])
             if won:
                 reward = 1
             else:
-                reward = -30 if a1 == 1 else -1  # Strong penalty for premature Yaniv
+                reward = -30 # Strong penalty for premature Yaniv
             self.model_phase1.add_episode(state_tensor, a1, reward)
             if debug:
                 print("End of game", reward)
             return True, won
 
+        # Phase 2: Discard cards and draw new card
         a2 = self.choose_action_phase2(game, hand, other, game.top_cards)
         discard_indices = POSSIBLE_MOVES[int(a2)]
         move_played = list(discard_indices)
-
-        valid_moves = list(game.valid_moves(hand))
-        move_values = {POSSIBLE_MOVES[valid_moves[i]]: game.move_value(
-            hand, POSSIBLE_MOVES[valid_moves[i]]) for i in range(len(valid_moves))}
-        # Phase 2: Discard cards and draw new card
         hc = hand.copy()
-        game.play(hand, move_played)
+        game.play(hand, move_played) # Hand now discarded cards played, hc has old hand
 
-        # Penalize inefficient discards
-        # if 2 * move_values[tuple(move_played)] <= move_values[max(move_values)]:
-        phase_2_intermediate_loss -= 3*(max((max(move_values.values()) - move_values[tuple(move_played)]), 5))
+        # Phase 2 intermediate loss logic
+        valid_moves = list(game.valid_moves(hc))  # Valid moves before playing
+        move_values = {
+            POSSIBLE_MOVES[i]: game.move_value(hc, POSSIBLE_MOVES[i])
+            for i in valid_moves
+        }
 
-        # print(phase_2_intermediate_loss)
+        best_value = max(move_values.values())
+        played_value = game.move_value(hc, discard_indices)
 
+        # Encourage playing the highest value possible
+        diff = best_value - played_value
+        if diff > 0:
+            phase_2_intermediate_loss -= diff * 5  # higher penalty for poor discard choice
+        else:
+            phase_2_intermediate_loss += 2  # small reward for optimal discard
+
+        # Encourage multi-card discards (reduce hand size)
+        phase_2_intermediate_loss += (len(discard_indices) - 1) * 2
+
+        # Strongly discourage playing Aces unless strategically necessary
+        num_aces = sum(1 for idx in discard_indices if idx % 13 == 0)
+        if num_aces > 0 and played_value < best_value:
+            phase_2_intermediate_loss -= 20 * num_aces
+
+        completers = []
         for card in game.tc_holder:
-            # Check if discarding a card that completes a combination with the card from discard
-            c1, v1 = game.completes_move(hc, card)
-            c2, v2 = game.completes_move(hand, card)
-            if (c1 and c2) and (v1 < v2):
+            # Check if playing a card that completes a combination with the card from discard
+            before_play, before_value = game.completes_move(hc, card)
+            after_play, after_value = game.completes_move(hand, card)
+            completers.append((card, after_play, after_value))
+            if before_play and not after_play:
+                # Card used to be part of a combo but no longer is
                 phase_2_intermediate_loss -= 15
-            elif c1 and not c2:
-                phase_2_intermediate_loss -= 15
-            elif not c1 and c2:
-                phase_2_intermediate_loss += 5
-            else:
-                phase_2_intermediate_loss += 0
-
-        # print(phase_2_intermediate_loss)
 
         # Improved phase 3 intermediate loss logic
+        tops = game.tc_holder
         state_tensor = game.to_tensor(hand, other, game.tc_holder)
         a3 = self.choose_action_phase3(game, hand, other, game.tc_holder)
         top_card_values = [game.card_value(card) for card in game.tc_holder]
-
-        if a3 == 52:  # Draw unknown card
-            if min(top_card_values) <= 3:
-                phase_3_intermediate_loss -= 15  # Penalize skipping low-value visible card
-            for card in game.tc_holder:
-                if game.completes_move(hand, card)[0]:
-                    phase_3_intermediate_loss -= 10
-        else:
-            if len(game.tc_holder) > 1:
-
-                chosen_card = a3
-                other_card = game.tc_holder[0] if game.tc_holder[0] != a3 else game.tc_holder[1]
-
-                completes, _ = game.completes_move(hand, chosen_card)
-                completes_other, _ = game.completes_move(game.player_1_hand, other_card)
-                if completes:
-                    phase_3_intermediate_loss += 9  # Reward drawing card completing a combination
-                elif completes_other:
-                    phase_3_intermediate_loss -= 14
-                elif game.card_value(chosen_card) > game.card_value(other_card):
-                    phase_3_intermediate_loss -= 8  # Penalize taking higher-value card
-                else:
-                    # Slight reward for drawing low-value card
-                    phase_3_intermediate_loss += 5 if game.card_value(
-                        chosen_card) <= 3 else 0
-            else:
-                completes, _ = game.completes_move(hand, a3)
-                if not completes and game.card_value(a3) > 3:
-                    phase_3_intermediate_loss -= 10
-                if completes:
-                    phase_3_intermediate_loss += 10
-                if game.card_value(a3) <= 3:
-                    phase_3_intermediate_loss += 4
-
-        if len(move_played) == 0:
-            raise ValueError("No cards played in phase 2")
-
-        # Reward/penalize changes in hand value after move
-        hand_value_before = game.get_hand_value(hand)
-
         drawn_card_idx = game.draw(hc, move_played, a3)
         hand[drawn_card_idx] += 1
 
-        hand_value_after = game.get_hand_value(hand)
-        hand_value_change = hand_value_before - hand_value_after
-
-        if game.get_hand_value(hand) <= 7:
-            phase_3_intermediate_loss = 0
-
+        if a3 == 52:  # drew from deck
+            for card, c, v in completers:
+                if c:  # this card completes a move
+                    phase_3_intermediate_loss -= max(10, v)
+                else:
+                    if game.card_value(card) <= 3:
+                        phase_3_intermediate_loss -= 3 * (10 - game.card_value(card))
+        else:
+            our = game.card_value(a3)
+            for card, completes, value in completers:
+                v = game.card_value(card)
+                if card == a3:
+                    if not completes and game.get_hand_value(hand) > 7:
+                        phase_3_intermediate_loss -= v
+                    else:
+                        phase_3_intermediate_loss += 2
+                else:
+                    if completes:
+                        phase_3_intermediate_loss -= value
+                    elif v < our:
+                        phase_3_intermediate_loss -= 10 - v
+        
         # Apply episodes with calculated intermediate losses
-        # phase_2_intermediate_loss = 0
         self.model_phase1.add_episode(
             state_tensor, a1, phase_1_intermediate_loss)
         self.model_phase2.add_episode(
@@ -230,7 +217,7 @@ class YanivAgent:
                 counter += 1
 
             print(f"""
-                  Top cards: {[game.card_to_name(game.tc_holder[i]) for i in range(len(game.tc_holder))]}
+                  Top cards: {[game.card_to_name(tops[i]) for i in range(len(tops))]}
                   Hand: {game.hand_to_cards(hc)}
                   Move played: {move_played}, Move Value: {move_values[tuple(move_played)]}
                   Move values: {move_values}
