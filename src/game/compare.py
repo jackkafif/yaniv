@@ -55,10 +55,10 @@ def compare(agent1, agent2, num_trials=10, show=False):
 
 agent1 = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
 agent1.load_models(1)
-agent1.epsilon = 0
+agent1.epsilon = 0.0
 
 agent2 = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
 agent2.load_models(2)
-agent2.epsilon = 0
+agent2.epsilon = 0.0
 
 compare(agent1, agent2, num_trials=100, show=True)
