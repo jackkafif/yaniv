@@ -11,6 +11,8 @@ import os
 
 debug = False
 d = False
+# debug = True
+# d = True
 
 class YanivAgent:
     def __init__(self, model_dir, state_size=STATE_SIZE, M1=MDQN, M2=MDQN, M3=MDQN):
@@ -140,31 +142,26 @@ class YanivAgent:
             POSSIBLE_MOVES[i]: game.move_value(hc, POSSIBLE_MOVES[i])
             for i in valid_moves
         }
+        # Penalize inefficient discards
+        if debug:
+            print(move_values)
+        if move_values[tuple(move_played)] < max(move_values.values()):
+            phase_2_intermediate_loss -= 20
 
-        best_value = max(move_values.values())
-        played_value = game.move_value(hc, discard_indices)
+        # best_value = max(move_values.values())
+        # played_value = game.move_value(hc, discard_indices)
 
-        # Encourage playing the highest value possible
-        diff = best_value - played_value
-        if diff > 0:
-            phase_2_intermediate_loss -= diff * 5  # higher penalty for poor discard choice
-        else:
-            phase_2_intermediate_loss += played_value  # small reward for optimal discard
+        # # Encourage playing the highest value possible
+        # diff = best_value - played_value
+        # if diff > 0:
+        #     phase_2_intermediate_loss -= diff * 5  # higher penalty for poor discard choice
+        # else:
+        #     phase_2_intermediate_loss += played_value  # small reward for optimal discard
 
-        # Strongly discourage playing Aces unless strategically necessary
-        num_aces = sum(1 for idx in discard_indices if idx % 13 == 0)
-        if num_aces > 0 and played_value < best_value:
-            phase_2_intermediate_loss -= 20 * num_aces
-
-        completers = []
-        for card in game.tc_holder:
-            # Check if playing a card that completes a combination with the card from discard
-            before_play, before_value = game.completes_move(hc, card)
-            after_play, after_value = game.completes_move(hand, card)
-            completers.append((card, after_play, after_value))
-            if before_play and not after_play:
-                # Card used to be part of a combo but no longer is
-                phase_2_intermediate_loss -= 15
+        # # Strongly discourage playing Aces unless strategically necessary
+        # num_aces = sum(1 for idx in discard_indices if idx % 13 == 0)
+        # if num_aces > 0 and played_value < best_value:
+        #     phase_2_intermediate_loss -= 20 * num_aces
 
         # Improved phase 3 intermediate loss logic
         tops = game.tc_holder
@@ -175,7 +172,11 @@ class YanivAgent:
         hand[drawn_card_idx] += 1
 
         if a3 == 52:  # drew from deck
-            for card, c, v in completers:
+            for card in game.tc_holder:
+                name = game.card_to_name(card)
+                c, v = game.completes_move(hc, card)
+                if debug:
+                    print(name, c, v)
                 if c:  # this card completes a move
                     phase_3_intermediate_loss -= max(10, v)
                 else:
@@ -183,23 +184,32 @@ class YanivAgent:
                         phase_3_intermediate_loss -= 3 * (10 - game.card_value(card))
         else:
             our = game.card_value(a3)
-            if len(completers) == 1:
+            if len(game.tc_holder) == 1:
                 if d:
                     print(f"{our, game.card_to_name(a3)}")
-                if not (completers[0][1] or our <= 3):
+                c, v = game.completes_move(hc, our)
+                value = game.card_value(our)
+                if not (c or value <= 3):
                     phase_3_intermediate_loss -= our
+                else:
+                    phase_3_intermediate_loss += max(v, value)
             else:
-                for card, completes, value in completers:
-                    v = game.card_value(card)
+                us_completes, us_value = game.completes_move(hc, a3)
+                a3_val = game.card_value(a3)
+                if not us_completes and a3_val > 3:
+                    phase_3_intermediate_loss -= a3_val
+                for card in game.tc_holder:
                     if card == a3:
-                        if not completes and game.get_hand_value(hand) > 7:
-                            phase_3_intermediate_loss -= v
+                        if not us_completes and game.get_hand_value(hand) > 7:
+                            phase_3_intermediate_loss -= a3_val
                         else:
                             phase_3_intermediate_loss += 2
                     else:
+                        completes, value = game.completes_move(hc, card)
+                        v = game.card_value(card)
                         if completes:
                             phase_3_intermediate_loss -= value
-                        elif v < our:
+                        elif v < a3_val:
                             phase_3_intermediate_loss -= 10 - v
         
         # Apply episodes with calculated intermediate losses
