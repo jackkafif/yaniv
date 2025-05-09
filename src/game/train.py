@@ -79,7 +79,7 @@ def train_models(model_comb, NUM_EPISODES=1000, track=False):
 
         if episode % 100 == 0:
             print(
-                f"Episode {episode}: Agent 1 Win Rate: {win_rates_1[-1]:.2f}, Agent 2 Win Rate: {win_rates_2[-1]:.2f}")
+                f"Episode {episode}: Agent 1 Win Rate: {win_rates_1[-1]:.2f}, Agent 2 Win Rate: {win_rates_2[-1]:.2f}, Average turns {sum(turns_taken) / len(turns_taken)}")
 
     print(f"Final Win Rates: Agent 1: {w1}, Agent 2: {w2}")
     print(

@@ -107,7 +107,7 @@ def play(visual=False, i=0, model_comb=linear_vs_linear):
             # state.play(state.player_2_hand, move)
             # state.draw(cp2, move, int(draw))
             done, won = m.play_agent(
-                state, state.player_2_hand, state.player_1_hand)
+                state, state.player_2_hand, state.player_1_hand, True)
             if done:
                 print("Your opponent called Yaniv! " +
                       "They have " + str(int(state.get_hand_value(state.player_2_hand))) +

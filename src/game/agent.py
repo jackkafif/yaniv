@@ -10,6 +10,7 @@ from game.model import M, MDQN
 import os
 
 debug = False
+d = False
 
 class YanivAgent:
     def __init__(self, model_dir, state_size=STATE_SIZE, M1=MDQN, M2=MDQN, M3=MDQN):
@@ -148,10 +149,7 @@ class YanivAgent:
         if diff > 0:
             phase_2_intermediate_loss -= diff * 5  # higher penalty for poor discard choice
         else:
-            phase_2_intermediate_loss += 2  # small reward for optimal discard
-
-        # Encourage multi-card discards (reduce hand size)
-        phase_2_intermediate_loss += (len(discard_indices) - 1) * 2
+            phase_2_intermediate_loss += played_value  # small reward for optimal discard
 
         # Strongly discourage playing Aces unless strategically necessary
         num_aces = sum(1 for idx in discard_indices if idx % 13 == 0)
@@ -185,18 +183,24 @@ class YanivAgent:
                         phase_3_intermediate_loss -= 3 * (10 - game.card_value(card))
         else:
             our = game.card_value(a3)
-            for card, completes, value in completers:
-                v = game.card_value(card)
-                if card == a3:
-                    if not completes and game.get_hand_value(hand) > 7:
-                        phase_3_intermediate_loss -= v
+            if len(completers) == 1:
+                if d:
+                    print(f"{our, game.card_to_name(a3)}")
+                if not (completers[0][1] or our <= 3):
+                    phase_3_intermediate_loss -= our
+            else:
+                for card, completes, value in completers:
+                    v = game.card_value(card)
+                    if card == a3:
+                        if not completes and game.get_hand_value(hand) > 7:
+                            phase_3_intermediate_loss -= v
+                        else:
+                            phase_3_intermediate_loss += 2
                     else:
-                        phase_3_intermediate_loss += 2
-                else:
-                    if completes:
-                        phase_3_intermediate_loss -= value
-                    elif v < our:
-                        phase_3_intermediate_loss -= 10 - v
+                        if completes:
+                            phase_3_intermediate_loss -= value
+                        elif v < our:
+                            phase_3_intermediate_loss -= 10 - v
         
         # Apply episodes with calculated intermediate losses
         self.model_phase1.add_episode(
@@ -207,7 +211,7 @@ class YanivAgent:
             state_tensor, a3, phase_3_intermediate_loss)
         
         # Print debug information
-        if debug:
+        if d:
             played = []
             nzs = np.nonzero(hc)[0]
             counter = 0
