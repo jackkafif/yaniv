@@ -17,7 +17,7 @@ class MDQN:
         self.episode_memory = []
         self.gamma = 0.95
         self.policy_net = self.model
-        self.intermediate_loss_weight = 0.1
+        self.intermediate_loss_weight = 0.5
 
     def forward(self, x):
         return self.model(x)
