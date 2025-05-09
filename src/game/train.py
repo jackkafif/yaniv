@@ -21,8 +21,8 @@ def train_models(model_comb, NUM_EPISODES=1000, track=False):
     M1 = model_comb["model1"]
     M2 = model_comb["model2"]
 
-    agent1 = YanivAgent(dir, STATE_SIZE, M1, M1, M1)
-    agent2 = YanivAgent(dir, STATE_SIZE, M2, M2, M2)
+    agent1 = YanivAgent(dir, STATE_SIZE, M1['1'], M1['2'], M1['3'])
+    agent2 = YanivAgent(dir, STATE_SIZE, M2['1'], M2['2'], M2['3'])
     agent1.epsilon = 1.0
     agent2.epsilon = 1.0
 

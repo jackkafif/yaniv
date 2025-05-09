@@ -6,15 +6,15 @@ import random
 from collections import deque
 from game.state import GameState
 from game.globals import *
-from game.model import M, MDQN
+from game.model import M, MDQN, ML1
 import os
 
 debug = False
 d = False
-# debug = True
-# d = True
+debug = True
+d = True
 
-p2_state_size = 144
+p2_state_size = 137
 class YanivAgent:
     def __init__(self, model_dir, state_size=STATE_SIZE, M1=MDQN, M2=MDQN, M3=MDQN):
 
@@ -23,7 +23,7 @@ class YanivAgent:
         self.model_dir = model_dir
 
         self.model_phase1 = M1(state_size, PHASE1_ACTION_SIZE)
-        self.model_phase2 = M2(p2_state_size, PHASE2_ACTION_SIZE)
+        self.model_phase2 = M2(137, PHASE2_ACTION_SIZE)
         self.model_phase3 = M3(state_size, PHASE3_ACTION_SIZE)
 
         self.epsilon = 1.0
@@ -69,8 +69,8 @@ class YanivAgent:
         if random.random() < self.epsilon:
             return random.choice(np.where(valid_moves > 0)[0])
         with torch.no_grad():
-            feats = state.get_features_2(hand, other, top_cards)
-            print(feats.shape)
+            feats = state.get_features_2(hand, other, top_cards).unsqueeze(0)
+            # print(feats.shape)
             q_vals = self.model_phase2.model(feats)
             q_vals = q_vals.squeeze(0)
             q_vals[valid_moves.T <= 0] = -np.inf
@@ -130,6 +130,7 @@ class YanivAgent:
             if debug:
                 print("End of game", reward)
             return True, won
+        state_2_tensor = game.get_features_2(hand, other, game.top_cards)
 
         # Phase 2: Discard cards and draw new card
         a2 = self.choose_action_phase2(game, hand, other, game.top_cards)
@@ -145,25 +146,21 @@ class YanivAgent:
             for i in valid_moves
         }
         # Penalize inefficient discards
-        if debug:
-            print(move_values)
-        if move_values[tuple(move_played)] < max(move_values.values()):
-            phase_2_intermediate_loss -= 20
 
-        # best_value = max(move_values.values())
-        # played_value = game.move_value(hc, discard_indices)
+        best_value = max(move_values.values())
+        played_value = game.move_value(hc, discard_indices)
 
-        # # Encourage playing the highest value possible
-        # diff = best_value - played_value
-        # if diff > 0:
-        #     phase_2_intermediate_loss -= diff * 5  # higher penalty for poor discard choice
-        # else:
-        #     phase_2_intermediate_loss += played_value  # small reward for optimal discard
+        # Encourage playing the highest value possible
+        diff = best_value - played_value
+        if diff > 0:
+            phase_2_intermediate_loss -= diff * 5  # higher penalty for poor discard choice
+        else:
+            phase_2_intermediate_loss += played_value  # small reward for optimal discard
 
-        # # Strongly discourage playing Aces unless strategically necessary
-        # num_aces = sum(1 for idx in discard_indices if idx % 13 == 0)
-        # if num_aces > 0 and played_value < best_value:
-        #     phase_2_intermediate_loss -= 20 * num_aces
+        # Strongly discourage playing Aces unless strategically necessary
+        num_aces = sum(1 for idx in discard_indices if idx % 13 == 0)
+        if num_aces > 0 and played_value < best_value:
+            phase_2_intermediate_loss -= 20 * num_aces
 
         # Improved phase 3 intermediate loss logic
         tops = game.tc_holder
@@ -218,7 +215,7 @@ class YanivAgent:
         self.model_phase1.add_episode(
             state_tensor, a1, phase_1_intermediate_loss)
         self.model_phase2.add_episode(
-            state_tensor, a2, phase_2_intermediate_loss)
+            state_2_tensor, a2, phase_2_intermediate_loss)
         self.model_phase3.add_episode(
             state_tensor, a3, phase_3_intermediate_loss)
         
