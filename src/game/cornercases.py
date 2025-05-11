@@ -1,8 +1,10 @@
 import torch
 from game.agent import YanivAgent, run_game
 from game.state import GameState
-from game.model import MDQN, M
+from game.model import MDQN, M, linear_vs_linear, linear_vs_multi, multi_vs_multi
+from game.train import train_models
 from game.globals import *
+
 import numpy as np
 import os
 import random
@@ -20,17 +22,22 @@ def set_seed():
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+
 t1 = "linear-vs-linear"
 t2 = "linear-vs-multi"
 t3 = "multi-vs-multi"
+
 
 class CornerCases:
     def __init__(self):
         # Create an agent and set epsilon to 0.0
         set_seed()
         # agent = YanivAgent(t1, STATE_SIZE, M, M, M)
-        agent = YanivAgent(t3, STATE_SIZE, MDQN, MDQN, MDQN)
-        agent.load_models(1)
+        agent1, agent2 = train_models(multi_vs_multi, 0)
+        if random.choice([True, False]):
+            agent = agent1
+        else:
+            agent = agent2
         agent.epsilon = 0.0
 
         self.agent = agent
@@ -98,8 +105,8 @@ class CornerCases:
         # Set the cards for the player, opponent, and top card
         cards = ["Seven of Hearts", "Seven of Diamonds"]
         opp_cards = ["Ace of Hearts"]
-        # top_card = ["Five of Spades", "Seven of Spades"]
-        top_card = ["Nine of Spades", "Seven of Spades"]
+        top_card = ["Five of Spades", "Seven of Spades"]
+        # top_card = ["Nine of Spades", "Seven of Spades"]
 
         # Generate the state
         state = self.generate_state(cards, opp_cards, top_card)
@@ -108,10 +115,9 @@ class CornerCases:
         # Set the number of turns
         state.curr_idx = num_turns
 
-        a3 = (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.tc_holder))
+        a3 = (self.agent.choose_action_phase3(
+            state, state.player_1_hand, state.player_2_hand, state.tc_holder))
         return a3
-
-
 
     def run_pick_up_card(self, top_card: str = "Ace of Spades", num_turns: int = 5):
         """
@@ -129,7 +135,8 @@ class CornerCases:
         state.curr_idx = num_turns
         # print(state.player_1_hand, state.player_2_hand, state.top_cards)
 
-        a3 = (self.agent.choose_action_phase3(state, state.player_1_hand, state.player_2_hand, state.tc_holder))
+        a3 = (self.agent.choose_action_phase3(
+            state, state.player_1_hand, state.player_2_hand, state.tc_holder))
         return a3
 
     def run_play_high_card(self, num_turns: int = 5):
@@ -146,8 +153,10 @@ class CornerCases:
         # opp_cards = ["Four of Clubs", "Nine of Clubs", "Seven of Spades", "Nine of Diamonds"]
         # top_card = ["Seven of Hearts"]
 
-        cards = ["Ace of Clubs", "King of Clubs", "Ace of Hearts", "Ace of Diamonds", "King of Diamonds"]
-        opp_cards = ["Four of Clubs", "Seven of Clubs", "Nine of Clubs", "Three of Diamonds"]
+        cards = ["Ace of Clubs", "King of Clubs", "Ace of Hearts",
+                 "Ace of Diamonds", "King of Diamonds"]
+        opp_cards = ["Four of Clubs", "Seven of Clubs",
+                     "Nine of Clubs", "Three of Diamonds"]
         top_card = ["Three of Diamonds"]
 
         # Generate the state
@@ -161,10 +170,29 @@ class CornerCases:
             state, state.player_1_hand, state.player_2_hand, state.top_cards, True))
         return [cards[i] for i in POSSIBLE_MOVES[int(result)]]
 
+    def run_wait_for_better_play(self):
+        """
+        Test the model to make sure it waits for a better play
+        """
+
+        # Set the cards for the player, opponent, and top card
+        cards = ["Nine of Hearts", "Nine of Spades", "Three of Clubs"]
+        opp_cards = ["Queen of Hearts", "Jack of Clubs", "Ten of Diamonds"]
+        top_card = ["Nine of Diamonds"]
+
+        # Generate the state
+        state = self.generate_state(cards, opp_cards, top_card)
+
+        result = (self.agent.choose_action_phase2(
+            state, state.player_1_hand, state.player_2_hand, state.top_cards, True))
+        return result
+
 # Tests
 
 
 def test_straight():
+    print("Testing straight over pair")
+    print("\n\n")
     for i in range(10):
         state = GameState()
         cornerCases = CornerCases()
@@ -172,53 +200,76 @@ def test_straight():
         top_card = state.card_to_name(i)
         print(f"Testing with top card: {top_card}")
         cornerCases.test_straight(top_card)
+    print("\n\n")
 
 
 def test_yaniv_calling():
+    print("Testing Yaniv calling")
+    print("\n\n")
     your_cards = ["Ace of Spades", "Two of Spades", "Three of Spades",
                   "Four of Spades", "Five of Spades", "Six of Spades", "Seven of Spades", "Eight of Spades"]
     for card in your_cards:
-        for x in range(num_trials):
-            set_seed()
-            # Create the corner cases object
-            cornerCases = CornerCases()
-            result = (cornerCases.run_should_yaniv(
-                your_card=card, num_turns=x))
-            print("Card:", card, "Turn:", x, "Result:", "Y" if result == 1 else "N")
+        set_seed()
+        # Create the corner cases object
+        cornerCases = CornerCases()
+        result = (cornerCases.run_should_yaniv(
+            your_card=card))
+        print("Card:", card, "Result:", "Y" if result == 1 else "N")
+    print("\n\n")
 
 
 def test_pick_up_higher():
+    print("Testing pick up higher")
+    print("\n\n")
     state = GameState()
-    for x in range(num_trials):
-        # set_seed()
-        # Create the corner cases object
-        cornerCases = CornerCases()
-        result = (cornerCases.run_pick_up_higher(num_turns=x))
-        print("Turn:", x, "Result:", "Deck" if result == 52 else state.card_to_name(result))
+    # set_seed()
+    # Create the corner cases object
+    cornerCases = CornerCases()
+    result = (cornerCases.run_pick_up_higher())
+    print("Result:", "Deck" if result == 52 else state.card_to_name(result))
+    print("\n\n")
 
 
 def test_pick_up_card():
+    print("Testing pick up card")
+    print("\n\n")
     top_cards = ["Ace of Spades", "Two of Spades", "Three of Spades",
                  "Four of Spades", "Five of Spades", "Six of Spades", "Seven of Spades", "Eight of Spades"]
     state = GameState()
     for card in top_cards:
-        for x in range(num_trials):
-            # set_seed()
-            # Create the corner cases object
-            cornerCases = CornerCases()
-            result = (cornerCases.run_pick_up_card(top_card=card, num_turns=x))
+        # set_seed()
+        # Create the corner cases object
+        cornerCases = CornerCases()
+        result = (cornerCases.run_pick_up_card(top_card=card))
 
-            print("Top Card:", card, "Turn:", x, "Result:", "Deck" if result == 52 else state.card_to_name(result))
+        print("Top Card:", card, "Result:", "Deck" if result ==
+              52 else state.card_to_name(result))
+    print("\n\n")
 
 
 def test_play_high_card():
+    print("Testing play high card")
+    print("\n\n")
     # set_seed()
     cornerCases = CornerCases()
     result = (cornerCases.run_play_high_card())
     print("Result:", result)
+    print("\n\n")
+
+
+def test_wait_for_better_play():
+    print("Testing wait for better play")
+    print("\n\n")
+    # set_seed()
+    cornerCases = CornerCases()
+    result = (cornerCases.run_wait_for_better_play())
+    print("Result:", result)
+    print("\n\n")
+
 
 if __name__ == "__main__":
-    # test_yaniv_calling()
-    # test_pick_up_higher()
-    # test_pick_up_card()
+    test_yaniv_calling()
+    test_pick_up_higher()
+    test_pick_up_card()
     test_play_high_card()
+    test_wait_for_better_play()
