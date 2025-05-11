@@ -182,10 +182,14 @@ class CornerCases:
 
         # Generate the state
         state = self.generate_state(cards, opp_cards, top_card)
+        hand = state.hand_to_cards(state.player_1_hand)
 
         result = (self.agent.choose_action_phase2(
             state, state.player_1_hand, state.player_2_hand, state.top_cards, True))
-        return result
+        c = []
+        for idx in POSSIBLE_MOVES[result]:
+            c.append(hand[idx])
+        return c
 
 # Tests
 
@@ -268,8 +272,8 @@ def test_wait_for_better_play():
 
 
 if __name__ == "__main__":
-    test_yaniv_calling()
-    test_pick_up_higher()
-    test_pick_up_card()
-    test_play_high_card()
+    # test_yaniv_calling()
+    # test_pick_up_higher()
+    # test_pick_up_card()
+    # test_play_high_card()
     test_wait_for_better_play()
