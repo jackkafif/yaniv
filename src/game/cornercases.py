@@ -176,7 +176,7 @@ class CornerCases:
         """
 
         # Set the cards for the player, opponent, and top card
-        cards = ["Nine of Hearts", "Nine of Spades", "Three of Clubs"]
+        cards = ["Nine of Hearts", "Nine of Spades", "Eight of Clubs"]
         opp_cards = ["Queen of Hearts", "Jack of Clubs", "Ten of Diamonds"]
         top_card = ["Nine of Diamonds"]
 

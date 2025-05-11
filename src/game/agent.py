@@ -9,10 +9,10 @@ from game.globals import *
 from game.model import M, MDQN, ML1
 import os
 
-# debug = False
-# d = False
-debug = True
-d = True
+debug = False
+d = False
+# debug = True
+# d = True
 
 class YanivAgent:
     def __init__(self, model_dir, state_size=STATE_SIZE, M1=MDQN, M2=MDQN, M3=MDQN):
@@ -139,51 +139,8 @@ class YanivAgent:
         hc = hand.copy()
         # Hand now discarded cards played, hc has old hand
         game.play(hand, move_played)
-
-        # Phase 2 intermediate loss logic
-        valid_moves = list(game.valid_moves(hc))  # Valid moves before playing
-
-        discard_compatible = {}
-        move_values = {}
-        nzs = hc.nonzero()[0]
-        print(game.hand_to_cards(hc))
-        for idx in valid_moves:
-            move = POSSIBLE_MOVES[idx]
-            print(move)
-            hand_holder = hc.copy()
-            hand_holder[nzs[list(move)]] = 0  
-            print(game.hand_to_cards(hand_holder))            
-            for inner_idx, card in enumerate(game.tc_holder):
-                c, v = game.completes_move(hand_holder, card)
-                if c:
-                    discard_compatible[move] = v
-            move_values[move] = game.move_value(hc, POSSIBLE_MOVES[idx])
-        print(discard_compatible)
-                
-        best_discard_compatible = max(discard_compatible.items(), key=lambda x : x[1], default = ([], 0))[0]
-        print(best_discard_compatible)
-        sb = [game.hand_to_cards(hc)[i] for i in list(best_discard_compatible)]
-        print(sb)
-
         played_value = game.move_value(hc, discard_indices)
-        # best_value = max(move_values.values()) # Make best value the best value without synergy with the discard
-        # Encourage playing the highest value possible
-        # phase_2_intermediate_loss += played_value  # small reward for optimal discard
-        p2_int = [0, 0]
-        for idx, card in enumerate(game.tc_holder):
-            # Check if discarding a card that completes a combination with the card from discard
-            c1, v1 = game.completes_move(hc, card) # Card in discard completes a move with hand before play
-            c2, v2 = game.completes_move(hand, card) # Card in discard completes a move with hand after play
-            if (c1 and c2) and (v1 < v2):  # Move didn't affect the playability of the card
-                p2_int[idx - 1] -= v2 - v1
-            elif c1 and not c2: # Move caused card to not be playable with hand
-                p2_int[idx - 1] += (played_value - v1)
-            elif not c1 and c2: # Move made no difference to this card
-                p2_int[idx - 1] = played_value
-            else:
-                p2_int[idx - 1] = played_value
-        phase_2_intermediate_loss += sum(p2_int)
-        # phase_2_intermediate_loss -= best_value
+        phase_2_intermediate_loss += played_value  # small reward for optimal discard
 
         # Improved phase 3 intermediate loss logic
         tops = game.tc_holder
