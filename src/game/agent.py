@@ -128,7 +128,7 @@ class YanivAgent:
                 reward = 1
             else:
                 # reward = -30 # Strong penalty for premature Yaniv
-                reward = -5
+                reward = -1
             self.model_phase1.add_episode(state_tensor, a1, reward)
             if debug:
                 print("End of game", reward)
@@ -153,31 +153,82 @@ class YanivAgent:
 
         best_value = max(move_values.values())
         played_value = game.move_value(hc, discard_indices)
-
-        # Encourage playing the highest value possible
         diff = best_value - played_value
-        if diff > 0:
-            phase_2_intermediate_loss -= diff * 5  # higher penalty for poor discard choice
-        else:
-            phase_2_intermediate_loss += played_value  # small reward for optimal discard
 
-        # Strongly discourage playing Aces unless strategically necessary
-        num_aces = sum(1 for idx in discard_indices if idx % 13 == 0)
-        if num_aces > 0 and played_value < best_value:
-            phase_2_intermediate_loss -= 20 * num_aces
+        # # Strongly discourage playing Aces unless strategically necessary
+        # num_aces = sum(1 for idx in discard_indices if idx % 13 == 0)
+        # if num_aces > 0 and played_value < best_value:
+        #     phase_2_intermediate_loss -= 20 * num_aces
 
-        for card in game.tc_holder:
-            # Check if discarding a card that completes a combination with the card from discard
-            c1, v1 = game.completes_move(hc, card)
-            c2, v2 = game.completes_move(hand, card)
-            if (c1 and c2) and (v1 < v2):
-                phase_2_intermediate_loss -= 15
+        # for card in game.tc_holder:
+        #     # Check if discarding a card that completes a combination with the card from discard
+        #     c1, v1 = game.completes_move(hc, card)
+        #     c2, v2 = game.completes_move(hand, card)
+
+        if len(game.tc_holder) == 1:
+            # If only one top card, check if it completes a move
+            c1, v1 = game.completes_move(hc, game.tc_holder[0])
+            c2, v2 = game.completes_move(hand, game.tc_holder[0])
+            if c1 and c2:
+                if v2 < v1:
+                    phase_2_intermediate_loss -= 15
+                if v1 == v2:
+                    phase_2_intermediate_loss += 30
             elif c1 and not c2:
-                phase_2_intermediate_loss -= 15
-            elif not c1 and c2:
-                phase_2_intermediate_loss += 5
+                phase_2_intermediate_loss -= 30
             else:
-                phase_2_intermediate_loss += 0
+                # Encourage playing the highest value possible
+                if diff > 0:
+                    phase_2_intermediate_loss -= 15  # penalty for poor discard choice
+                else:
+                    phase_2_intermediate_loss += 15  # small reward for optimal discard
+
+        if len(game.tc_holder) == 2:
+            # If two top cards, check if either completes a move
+            card1_c1, card1_v1 = game.completes_move(hc, game.tc_holder[0])
+            card1_c2, card1_v2 = game.completes_move(hand, game.tc_holder[0])
+            card2_c1, card2_v1 = game.completes_move(hc, game.tc_holder[1])
+            card2_c2, card2_v2 = game.completes_move(hand, game.tc_holder[1])
+
+            if card1_c1 and card2_c1:
+                max_v1 = max(card1_v1, card2_v1)
+            elif card1_c1:
+                max_v1 = card1_v1
+            elif card2_c1:
+                max_v1 = card2_v1
+            else:
+                max_v1 = 0
+            if card1_c2 and card2_c2:
+                max_v2 = max(card1_v2, card2_v2)
+            elif card1_c2:
+                max_v2 = card1_v2
+            elif card2_c2:
+                max_v2 = card2_v2
+            else:
+                max_v2 = 0
+
+            if max_v1 > 0 and max_v2 > 0:
+                if max_v2 < max_v1:
+                    phase_2_intermediate_loss -= 15
+                if max_v1 == max_v2:
+                    phase_2_intermediate_loss += 30
+            elif max_v1 > 0:
+                phase_2_intermediate_loss -= 30
+            else:
+                # Encourage playing the highest value possible
+                if diff > 0:
+                    phase_2_intermediate_loss -= 15  # penalty for poor discard choice
+                else:
+                    phase_2_intermediate_loss += 15  # small reward for optimal discard
+
+        # if (c1 and c2) and (v1 < v2):
+        #     phase_2_intermediate_loss -= -20
+        # elif c1 and not c2:
+        #     phase_2_intermediate_loss -= 20
+        # elif not c1 and c2:
+        #     phase_2_intermediate_loss += 5
+        # else:
+        #     phase_2_intermediate_loss += 0
 
         # Improved phase 3 intermediate loss logic
         tops = game.tc_holder
