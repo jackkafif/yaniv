@@ -249,17 +249,6 @@ class GameState:
         """
         return np.nonzero(hand)[0]
     
-    def get_features_2(self, hand: np.ndarray, other_hand: np.ndarray, top_cards: list) -> np.ndarray[int]:
-        other_player_num_cards = len(other_hand)
-        valid_moves = self.valid_moves(hand)
-        top_cards_tensor = np.zeros(52)
-        for card in top_cards:
-            top_cards_tensor[card] += 1
-        vals = self.get_moves_values(hand, valid_moves).flatten()
-        vals = vals**2
-        x = FloatTensor(np.concatenate([hand.flatten(), top_cards_tensor, [other_player_num_cards], vals]))
-        return x
-
     def get_features(self, hand: np.ndarray, other_hand: np.ndarray, top_cards: list) -> np.ndarray[int]:
         """
         The features of the game known to player with hand {hand} playing against opponent with hand {other_hand}

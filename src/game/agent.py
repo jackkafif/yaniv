@@ -11,11 +11,8 @@ import os
 
 debug = False
 d = False
-# debug = True
-# d = True
-
-p2_state_size = 137
-
+debug = True
+d = True
 
 class YanivAgent:
     def __init__(self, model_dir, state_size=STATE_SIZE, M1=MDQN, M2=MDQN, M3=MDQN):
@@ -25,7 +22,7 @@ class YanivAgent:
         self.model_dir = model_dir
 
         self.model_phase1 = M1(state_size, PHASE1_ACTION_SIZE)
-        self.model_phase2 = M2(137, PHASE2_ACTION_SIZE)
+        self.model_phase2 = M2(state_size, PHASE2_ACTION_SIZE)
         self.model_phase3 = M3(state_size, PHASE3_ACTION_SIZE)
 
         self.epsilon = 1.0
@@ -71,9 +68,9 @@ class YanivAgent:
         if random.random() < self.epsilon:
             return random.choice(np.where(valid_moves > 0)[0])
         with torch.no_grad():
-            feats = state.get_features_2(hand, other, top_cards).unsqueeze(0)
-            # print(feats.shape)
-            q_vals = self.model_phase2.model(feats)
+            q_vals = self.model_phase2.model(
+                state.to_tensor(hand, other, top_cards).unsqueeze(0)
+            )
             q_vals = q_vals.squeeze(0)
             q_vals[valid_moves.T <= 0] = -np.inf
         if debug:
@@ -95,18 +92,6 @@ class YanivAgent:
             print(f"Phase 3 Q values: {q_vals}")
         move = int(torch.argmax(q_vals))
         return move
-
-    def schoose_turn_moves(self, state: GameState, hand: np.ndarray, other: np.ndarray):
-        # Convert the state to a tensor
-        state_tensor = state.to_tensor(hand, other)
-
-        # Choose actions for each phase
-        phase1 = self.choose_action_phase1(state, hand, other)
-        phase2 = self.choose_action_phase2(state, hand, other)
-        phase3 = self.choose_action_phase3(state, hand, other)
-
-        # Return the chosen actions
-        return phase1, phase2, phase3
 
     def play_agent(self, game: GameState, hand: np.ndarray, other: np.ndarray, debug=debug):
         if debug:
@@ -133,7 +118,7 @@ class YanivAgent:
             if debug:
                 print("End of game", reward)
             return True, won
-        state_2_tensor = game.get_features_2(hand, other, game.top_cards)
+        state_2_tensor = game.to_tensor(hand, other, game.top_cards)
 
         # Phase 2: Discard cards and draw new card
         a2 = self.choose_action_phase2(game, hand, other, game.top_cards)
@@ -171,17 +156,17 @@ class YanivAgent:
             c2, v2 = game.completes_move(hand, game.tc_holder[0])
             if c1 and c2:
                 if v2 < v1:
-                    phase_2_intermediate_loss -= 15
+                    phase_2_intermediate_loss -= (v1 - v2)
                 if v1 == v2:
-                    phase_2_intermediate_loss += 30
+                    phase_2_intermediate_loss += (v1 + v2)
             elif c1 and not c2:
-                phase_2_intermediate_loss -= 30
+                phase_2_intermediate_loss -= v1
             else:
                 # Encourage playing the highest value possible
                 if diff > 0:
-                    phase_2_intermediate_loss -= 15  # penalty for poor discard choice
+                    phase_2_intermediate_loss -= diff  # penalty for poor discard choice
                 else:
-                    phase_2_intermediate_loss += 15  # small reward for optimal discard
+                    phase_2_intermediate_loss += played_value / 4  # small reward for optimal discard
 
         if len(game.tc_holder) == 2:
             # If two top cards, check if either completes a move
@@ -190,45 +175,22 @@ class YanivAgent:
             card2_c1, card2_v1 = game.completes_move(hc, game.tc_holder[1])
             card2_c2, card2_v2 = game.completes_move(hand, game.tc_holder[1])
 
-            if card1_c1 and card2_c1:
-                max_v1 = max(card1_v1, card2_v1)
-            elif card1_c1:
-                max_v1 = card1_v1
-            elif card2_c1:
-                max_v1 = card2_v1
-            else:
-                max_v1 = 0
-            if card1_c2 and card2_c2:
-                max_v2 = max(card1_v2, card2_v2)
-            elif card1_c2:
-                max_v2 = card1_v2
-            elif card2_c2:
-                max_v2 = card2_v2
-            else:
-                max_v2 = 0
+            max_v1 = max(card1_v1, card2_v1)
+            max_v2 = max(card1_v2, card2_v2)
 
-            if max_v1 > 0 and max_v2 > 0:
-                if max_v2 < max_v1:
-                    phase_2_intermediate_loss -= 15
-                if max_v1 == max_v2:
-                    phase_2_intermediate_loss += 30
-            elif max_v1 > 0:
-                phase_2_intermediate_loss -= 30
-            else:
+            if max_v1 > 0 and max_v2 > 0: # You have a play with both of the top cards
+                if max_v2 < max_v1:  # Prev potential play is worse than current
+                    phase_2_intermediate_loss -= (max_v1 - max_v2) # Loss equals lost value 
+                if max_v1 == max_v2: # Prev potential play is same as current
+                    phase_2_intermediate_loss += max_v1 # Reward equals value retained for future
+            elif max_v1 > 0: # You were able to make a play using the cards, but can no longer given what was played
+                phase_2_intermediate_loss -= max_v1 # Loss equals lost value
+            else: # Neither of the cards were useful
                 # Encourage playing the highest value possible
                 if diff > 0:
-                    phase_2_intermediate_loss -= 15  # penalty for poor discard choice
+                    phase_2_intermediate_loss -= diff  # penalty for poor discard choice
                 else:
-                    phase_2_intermediate_loss += 15  # small reward for optimal discard
-
-        # if (c1 and c2) and (v1 < v2):
-        #     phase_2_intermediate_loss -= -20
-        # elif c1 and not c2:
-        #     phase_2_intermediate_loss -= 20
-        # elif not c1 and c2:
-        #     phase_2_intermediate_loss += 5
-        # else:
-        #     phase_2_intermediate_loss += 0
+                    phase_2_intermediate_loss += played_value / 4  # small reward for optimal discard
 
         # Improved phase 3 intermediate loss logic
         tops = game.tc_holder
@@ -238,62 +200,7 @@ class YanivAgent:
         drawn_card_idx = game.draw(hc, move_played, a3)
         hand[drawn_card_idx] += 1
 
-        # if a3 == 52:  # drew from deck
-        #     for card in game.tc_holder:
-        #         name = game.card_to_name(card)
-        #         c, v = game.completes_move(hc, card)
-        #         if debug:
-        #             print(name, c, v)
-        #         if c:  # this card completes a move
-        #             phase_3_intermediate_loss -= max(10, v)
-        #         else:
-        #             if game.card_value(card) <= 3:
-        #                 phase_3_intermediate_loss -= 3 * \
-        #                     (10 - game.card_value(card))
-        # else:
-        #     our = game.card_value(a3)
-        #     if len(game.tc_holder) == 1:
-        #         if d:
-        #             print(f"{our, game.card_to_name(a3)}")
-        #         c, v = game.completes_move(hc, our)
-        #         value = game.card_value(our)
-        #         if not (c or value <= 3):
-        #             phase_3_intermediate_loss -= our
-        #         else:
-        #             phase_3_intermediate_loss += max(v, value)
-        #     else:
-        #         us_completes, us_value = game.completes_move(hc, a3)
-        #         a3_val = game.card_value(a3)
-        #         # if not us_completes and a3_val > 3:
-        #         #     phase_3_intermediate_loss -= a3_val
-        #         for card in game.tc_holder:
-        #             if card != a3:
-        #                 # if not us_completes and a3_val > 3:
-        #                 #     phase_3_intermediate_loss -= a3_val
-        #                 # else:
-        #                 #     phase_3_intermediate_loss += 3
-        #                 completes, value = game.completes_move(hc, card)
-        #                 v = game.card_value(card)
-        #                 if completes and us_completes:
-        #                     dif = (v - value) - (a3_val - us_value)
-        #                     phase_3_intermediate_loss += dif
-        #                 elif completes and not us_completes:
-        #                     phase_3_intermediate_loss -= 3
-        #                 elif not completes and us_completes:
-        #                     phase_3_intermediate_loss += 3
-        #                 elif not completes and not us_completes:
-        #                     if a3_val < 3 and a3_val < v:
-        #                         phase_3_intermediate_loss += 3
-        #                     else:
-        #                         phase_3_intermediate_loss -= 3
-
-        #         if game.get_hand_value(hc) <= 7:
-        #             phase_3_intermediate_loss = 0
-
         # New phase 3 intermediate reward logic
-
-        # New phase 3 intermediate reward logic
-
         drawn_card_value = game.card_value(a3) if a3 != 52 else None
         completes_combo, combo_value = game.completes_move(
             hc, a3) if a3 != 52 else (False, 0)
