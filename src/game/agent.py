@@ -9,8 +9,8 @@ from game.globals import *
 from game.model import M, MDQN, ML1
 import os
 
-debug = False
-d = False
+# debug = False
+# d = False
 debug = True
 d = True
 
