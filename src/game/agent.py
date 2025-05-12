@@ -9,10 +9,10 @@ from game.globals import *
 from game.model import M, MDQN, ML1
 import os
 
-# debug = False
-# d = False
-debug = True
-d = True
+debug = False
+d = False
+# debug = True
+# d = True
 
 class YanivAgent:
     def __init__(self, model_dir, state_size=STATE_SIZE, M1=MDQN, M2=MDQN, M3=MDQN):
