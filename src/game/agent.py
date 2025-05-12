@@ -136,7 +136,9 @@ class YanivAgent:
         }
         # Penalize inefficient discards
 
-        best_value = max(move_values.values())
+        sorted_mvs = sorted(move_values.items(), key=lambda x : -x[1])
+        best_value = sorted_mvs[0][1]
+        median = sorted_mvs[len(sorted_mvs) // 2][1]
         played_value = game.move_value(hc, discard_indices)
         diff = best_value - played_value
 
@@ -159,6 +161,10 @@ class YanivAgent:
                     phase_2_intermediate_loss -= (v1 - v2)
                 if v1 == v2:
                     phase_2_intermediate_loss += (v1 + v2)
+                    if played_value < median:
+                        phase_2_intermediate_loss = - median  # penalty for poor discard choice
+                    else:
+                        phase_2_intermediate_loss += played_value / 4  # small reward for optimal discard
             elif c1 and not c2:
                 phase_2_intermediate_loss -= v1
             else:
@@ -177,12 +183,15 @@ class YanivAgent:
 
             max_v1 = max(card1_v1, card2_v1)
             max_v2 = max(card1_v2, card2_v2)
-
             if max_v1 > 0 and max_v2 > 0: # You have a play with both of the top cards
                 if max_v2 < max_v1:  # Prev potential play is worse than current
                     phase_2_intermediate_loss -= (max_v1 - max_v2) # Loss equals lost value 
                 if max_v1 == max_v2: # Prev potential play is same as current
                     phase_2_intermediate_loss += max_v1 # Reward equals value retained for future
+                    if played_value < median:
+                        phase_2_intermediate_loss = - median  # penalty for poor discard choice
+                    else:
+                        phase_2_intermediate_loss += played_value / 4  # small reward for optimal discard
             elif max_v1 > 0: # You were able to make a play using the cards, but can no longer given what was played
                 phase_2_intermediate_loss -= max_v1 # Loss equals lost value
             else: # Neither of the cards were useful
