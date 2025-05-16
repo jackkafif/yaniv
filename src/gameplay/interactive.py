@@ -11,13 +11,15 @@ import random
 import sys
 import torch
 
+
 def set_seed():
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
-    torch.cuda.manual_seed_all(42)
+    np.random.seed(44)
+    random.seed(44)
+    torch.manual_seed(44)
+    torch.cuda.manual_seed_all(44)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
 
 def play(visual=False, i=0, model_comb=linear_vs_linear):
     set_seed()
@@ -126,12 +128,14 @@ def play(visual=False, i=0, model_comb=linear_vs_linear):
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         NUM_EPISODES = int(sys.argv[1])
-        model_comb = linear_vs_linear if sys.argv[2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
+        model_comb = linear_vs_linear if sys.argv[
+            2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
     else:
         NUM_EPISODES = 10000
         model_comb = linear_vs_linear
     if len(sys.argv) > 2:
-        model_comb = linear_vs_linear if sys.argv[2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
+        model_comb = linear_vs_linear if sys.argv[
+            2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
     else:
         model_comb = linear_vs_linear
     if len(sys.argv) > 3:

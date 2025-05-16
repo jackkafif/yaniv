@@ -10,6 +10,9 @@ import os
 import random
 from game.nets import *
 import sys
+import matplotlib.pyplot as plt
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
 def train_models(model_comb, NUM_EPISODES=1000, track=False):
@@ -40,6 +43,8 @@ def train_models(model_comb, NUM_EPISODES=1000, track=False):
     win_rates_1 = []
     win_rates_2 = []
     turns_taken = []
+    avg_turns = []
+    cumulative_turns = []
     for episode in range(1, NUM_EPISODES + 1):
         print(f"Episode {episode}", '\r', end='')
         # Randomly select True or False
@@ -80,10 +85,24 @@ def train_models(model_comb, NUM_EPISODES=1000, track=False):
         if episode % 100 == 0:
             print(
                 f"Episode {episode}: Agent 1 Win Rate: {win_rates_1[-1]:.2f}, Agent 2 Win Rate: {win_rates_2[-1]:.2f}, Average turns {sum(turns_taken) / len(turns_taken)}")
+            avg_turns.append(sum(turns_taken) / len(turns_taken))
+            cumulative_turns.append(episode)
 
     print(f"Final Win Rates: Agent 1: {w1}, Agent 2: {w2}")
     print(
         f"Agent 1 Win Rate: {w1 / NUM_EPISODES:.2f}, Agent 2 Win Rate: {w2 / NUM_EPISODES:.2f}")
+    plt.figure(figsize=(10, 6))
+    plt.plot(cumulative_turns, avg_turns,
+             label="Average Turns per Game (Cumulative Average)")
+    plt.xlabel("Episode")
+    plt.ylabel("Average Turns")
+    plt.ylim(0, max(avg_turns) + 1)
+    plt.title("Average Number of Turns per Game Over Time")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    # plt.savefig("src/game/plots/good_model_multi2_average_turns.png")
+    plt.show()
 
     return (w1, win_rates_1), (w2, win_rates_2), agent1, agent2
 
@@ -91,7 +110,8 @@ def train_models(model_comb, NUM_EPISODES=1000, track=False):
 if __name__ == "__main__":
     if len(sys.argv) > 2:
         NUM_EPISODES = int(sys.argv[1])
-        model_comb = linear_vs_linear if sys.argv[2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
+        model_comb = linear_vs_linear if sys.argv[
+            2] == "linear" else multi_vs_multi if sys.argv[2] == "multi" else linear_vs_multi
     else:
         NUM_EPISODES = 10000
         model_comb = linear_vs_linear

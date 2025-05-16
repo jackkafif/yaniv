@@ -14,6 +14,7 @@ d = False
 # debug = True
 # d = True
 
+
 class YanivAgent:
     def __init__(self, model_dir, state_size=STATE_SIZE, M1=MDQN, M2=MDQN, M3=MDQN):
 
@@ -118,6 +119,12 @@ class YanivAgent:
             if debug:
                 print("End of game", reward)
             return True, won
+
+        num_cards = int(np.sum(hand))
+        num_opp_cards = int(np.sum(other))
+        if game.can_yaniv(hand) and num_cards < num_opp_cards:
+            reward = -1
+            self.model_phase1.add_episode(state_tensor, a1, reward)
         state_2_tensor = game.to_tensor(hand, other, game.top_cards)
 
         # Phase 2: Discard cards and draw new card
@@ -136,13 +143,13 @@ class YanivAgent:
         }
         # Penalize inefficient discards
 
-        sorted_mvs = sorted(move_values.items(), key=lambda x : -x[1])
+        sorted_mvs = sorted(move_values.items(), key=lambda x: -x[1])
         best_value = sorted_mvs[0][1]
         median = sorted_mvs[len(sorted_mvs) // 2][1]
         played_value = game.move_value(hc, discard_indices)
         diff = best_value - played_value
 
-        # # Strongly discourage playing Aces unless strategically necessary
+        # Strongly discourage playing Aces unless strategically necessary
         # num_aces = sum(1 for idx in discard_indices if idx % 13 == 0)
         # if num_aces > 0 and played_value < best_value:
         #     phase_2_intermediate_loss -= 20 * num_aces
@@ -160,19 +167,19 @@ class YanivAgent:
                 if v2 < v1:
                     phase_2_intermediate_loss -= (v1 - v2)
                 if v1 == v2:
-                    phase_2_intermediate_loss += (v1 + v2)
+                    # phase_2_intermediate_loss += (v1 + v2)
                     if played_value < median:
-                        phase_2_intermediate_loss = - median  # penalty for poor discard choice
+                        phase_2_intermediate_loss = -10  # penalty for poor discard choice
                     else:
-                        phase_2_intermediate_loss += played_value / 4  # small reward for optimal discard
+                        phase_2_intermediate_loss += 15  # small reward for optimal discard
             elif c1 and not c2:
                 phase_2_intermediate_loss -= v1
             else:
                 # Encourage playing the highest value possible
                 if diff > 0:
-                    phase_2_intermediate_loss -= diff  # penalty for poor discard choice
+                    phase_2_intermediate_loss -= 10  # penalty for poor discard choice
                 else:
-                    phase_2_intermediate_loss += played_value / 4  # small reward for optimal discard
+                    phase_2_intermediate_loss += 15  # small reward for optimal discard
 
         if len(game.tc_holder) == 2:
             # If two top cards, check if either completes a move
@@ -183,27 +190,28 @@ class YanivAgent:
 
             max_v1 = max(card1_v1, card2_v1)
             max_v2 = max(card1_v2, card2_v2)
-            if max_v1 > 0 and max_v2 > 0: # You have a play with both of the top cards
+            if max_v1 > 0 and max_v2 > 0:  # You have a play with both of the top cards
                 if max_v2 < max_v1:  # Prev potential play is worse than current
-                    phase_2_intermediate_loss -= (max_v1 - max_v2) # Loss equals lost value 
-                if max_v1 == max_v2: # Prev potential play is same as current
-                    phase_2_intermediate_loss += max_v1 # Reward equals value retained for future
+                    # Loss equals lost value
+                    phase_2_intermediate_loss -= (max_v1 - max_v2)
+                if max_v1 == max_v2:  # Prev potential play is same as current
+                    # phase_2_intermediate_loss += max_v1 # Reward equals value retained for future
                     if played_value < median:
-                        phase_2_intermediate_loss = - median  # penalty for poor discard choice
+                        phase_2_intermediate_loss -= 10  # penalty for poor discard choice
                     else:
-                        phase_2_intermediate_loss += played_value / 4  # small reward for optimal discard
-            elif max_v1 > 0: # You were able to make a play using the cards, but can no longer given what was played
-                phase_2_intermediate_loss -= max_v1 # Loss equals lost value
-            else: # Neither of the cards were useful
+                        phase_2_intermediate_loss += 15  # small reward for optimal discard
+            elif max_v1 > 0:  # You were able to make a play using the cards, but can no longer given what was played
+                phase_2_intermediate_loss -= max_v1  # Loss equals lost value
+            else:  # Neither of the cards were useful
                 # Encourage playing the highest value possible
                 if diff > 0:
-                    phase_2_intermediate_loss -= diff  # penalty for poor discard choice
+                    phase_2_intermediate_loss -= 10  # penalty for poor discard choice
                 else:
-                    phase_2_intermediate_loss += played_value / 4  # small reward for optimal discard
+                    phase_2_intermediate_loss += 15  # small reward for optimal discard
 
         # Improved phase 3 intermediate loss logic
         tops = game.tc_holder
-        state_tensor = game.to_tensor(hand, other, game.tc_holder)
+        state_3_tensor = game.to_tensor(hand, other, game.tc_holder)
         a3 = self.choose_action_phase3(game, hand, other, game.tc_holder)
         top_card_values = [game.card_value(card) for card in game.tc_holder]
         drawn_card_idx = game.draw(hc, move_played, a3)
@@ -219,7 +227,7 @@ class YanivAgent:
                 phase_3_intermediate_loss += 10 + combo_value
             elif drawn_card_value <= 3:
                 phase_3_intermediate_loss += 5
-            elif drawn_card_value > 7:
+            elif drawn_card_value > 3:
                 phase_3_intermediate_loss -= drawn_card_value
         else:
             useful_top_cards = [
@@ -237,7 +245,7 @@ class YanivAgent:
         self.model_phase2.add_episode(
             state_2_tensor, a2, phase_2_intermediate_loss)
         self.model_phase3.add_episode(
-            state_tensor, a3, phase_3_intermediate_loss)
+            state_3_tensor, a3, phase_3_intermediate_loss)
 
         # Print debug information
         if d:
@@ -296,14 +304,22 @@ def run_game(p1: YanivAgent, p2: YanivAgent):
     p2_hand = game.player_2_hand
     num_turns = 0
 
+    # print("Starting game...")
     while True:
+        # Player 1's turn
+        # print("Player 1's turn")
         done, won = p1.play_agent(game, p1_hand, p2_hand)
+        # print(game.hand_to_cards(p1_hand))
+        # print(game.hand_to_cards(p2_hand))
         num_turns += 1
         if done:
             return (won, num_turns)
 
         # Player 2's turn
+        # print("Player 2's turn")
         done, won = p2.play_agent(game, p2_hand, p1_hand)
+        # print(game.hand_to_cards(p1_hand))
+        # print(game.hand_to_cards(p2_hand))
         num_turns += 1
         if done:
             return (not won, num_turns)

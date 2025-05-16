@@ -42,12 +42,16 @@ def compare(agent1, agent2, num_trials=10, show=False):
         plt.xlabel("Total Games")
         plt.ylabel("Agent 1 Wins")
         plt.title("Agent 1 Wins Over Time")
+        plt.savefig(
+            "src/game/compare_plots/good_multi-vs-linear_multi_wins_over_time.png")
         plt.show()
 
         plt.plot(total_games, total_game_length)
         plt.xlabel("Total Games")
         plt.ylabel("Game Length")
         plt.title("Game Length Over Time")
+        plt.savefig(
+            "src/game/compare_plots/good_multi-vs-linear_game_length_over_time.png")
         plt.show()
 
     return wins_agent1, wins_agent2
@@ -55,10 +59,10 @@ def compare(agent1, agent2, num_trials=10, show=False):
 
 agent1 = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
 agent1.load_models(1)
-agent1.epsilon = 0.0
+agent1.epsilon = 0.01
 
-agent2 = YanivAgent("multi-vs-multi", STATE_SIZE, MDQN, MDQN, MDQN)
+agent2 = YanivAgent("linear-vs-linear", STATE_SIZE, MDQN, MDQN, MDQN)
 agent2.load_models(2)
-agent2.epsilon = 0.0
+agent2.epsilon = 0.01
 
-compare(agent1, agent2, num_trials=100, show=True)
+compare(agent1, agent2, num_trials=20, show=True)

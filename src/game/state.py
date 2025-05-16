@@ -248,7 +248,7 @@ class GameState:
             list[int] : The list of indices of the cards in the hand
         """
         return np.nonzero(hand)[0]
-    
+
     def get_features(self, hand: np.ndarray, other_hand: np.ndarray, top_cards: list) -> np.ndarray[int]:
         """
         The features of the game known to player with hand {hand} playing against opponent with hand {other_hand}
@@ -267,7 +267,6 @@ class GameState:
         for card in top_cards:
             top_cards_tensor[card] += 1
         vals = self.get_moves_values(hand, valid_moves).flatten()
-        vals = vals**2
         top_1_completes, move_value1 = self.completes_move(
             hand, top_cards[0])
         top1_value = self.card_value(top_cards[0])
