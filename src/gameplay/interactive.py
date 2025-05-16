@@ -22,7 +22,7 @@ def set_seed():
 
 
 def play(visual=False, i=0, model_comb=linear_vs_linear):
-    set_seed()
+    # set_seed()
     m1, m2 = train_models(model_comb, i)
     input("Press Enter to start playing...")
     os.system('clear')
