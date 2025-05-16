@@ -6,7 +6,9 @@ Run this command:
 export PYTHONPATH="$PYTHONPATH:/Users/jackkafif/Cornell/SP2025/CS4701/src"
 
 To play the game run the following command from the root directory:
-python src/gameplay/interactive 0 layer visual
+
+
+python src/gameplay/interactive.py 0 layer visual
 
 
 layer = multi/linear to play multilayer or linear
